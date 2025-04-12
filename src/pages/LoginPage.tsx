@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -8,6 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Flag } from 'lucide-react';
 import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
 
 const LoginPage = () => {
   const navigate = useNavigate();
@@ -16,28 +17,90 @@ const LoginPage = () => {
   const [password, setPassword] = useState<string>('');
   const [username, setUsername] = useState<string>('');
   const [name, setName] = useState<string>('');
+  const [loading, setLoading] = useState<boolean>(false);
   
-  const handleLogin = (e: React.FormEvent) => {
+  // Check if user is already logged in
+  useEffect(() => {
+    const checkSession = async () => {
+      const { data } = await supabase.auth.getSession();
+      if (data.session) {
+        navigate('/');
+      }
+    };
+    
+    checkSession();
+    
+    // Set up auth listener
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (event, session) => {
+        if (session) {
+          navigate('/');
+        }
+      }
+    );
+    
+    return () => subscription.unsubscribe();
+  }, [navigate]);
+  
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // In a real app, this would authenticate against a backend
-    if (email && password) {
+    if (!email || !password) {
+      toast.error('Please enter both email and password');
+      return;
+    }
+    
+    try {
+      setLoading(true);
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+      
+      if (error) {
+        throw error;
+      }
+      
       toast.success('Successfully logged in!');
       navigate('/');
-    } else {
-      toast.error('Please enter both email and password');
+    } catch (error: any) {
+      toast.error(error.message || 'An error occurred during login');
+    } finally {
+      setLoading(false);
     }
   };
   
-  const handleSignup = (e: React.FormEvent) => {
+  const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // In a real app, this would create a new user on the backend
-    if (email && password && username && name) {
-      toast.success('Account created successfully! You can now log in.');
-      setTab('login');
-    } else {
+    if (!email || !password || !username || !name) {
       toast.error('Please fill out all fields');
+      return;
+    }
+    
+    try {
+      setLoading(true);
+      const { error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            username,
+            name,
+          }
+        }
+      });
+      
+      if (error) {
+        throw error;
+      }
+      
+      toast.success('Account created successfully! Please check your email for the confirmation link.');
+      setTab('login');
+    } catch (error: any) {
+      toast.error(error.message || 'An error occurred during signup');
+    } finally {
+      setLoading(false);
     }
   };
   
@@ -80,6 +143,7 @@ const LoginPage = () => {
                       placeholder="your.email@example.com"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
+                      disabled={loading}
                     />
                   </div>
                   <div className="space-y-2">
@@ -94,12 +158,17 @@ const LoginPage = () => {
                       type="password"
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
+                      disabled={loading}
                     />
                   </div>
                 </CardContent>
                 <CardFooter>
-                  <Button type="submit" className="w-full bg-f1-red hover:bg-f1-red/90">
-                    Login
+                  <Button 
+                    type="submit" 
+                    className="w-full bg-f1-red hover:bg-f1-red/90"
+                    disabled={loading}
+                  >
+                    {loading ? 'Logging in...' : 'Login'}
                   </Button>
                 </CardFooter>
               </form>
@@ -123,6 +192,7 @@ const LoginPage = () => {
                       placeholder="John Doe"
                       value={name}
                       onChange={(e) => setName(e.target.value)}
+                      disabled={loading}
                     />
                   </div>
                   <div className="space-y-2">
@@ -132,6 +202,7 @@ const LoginPage = () => {
                       placeholder="johndoe"
                       value={username}
                       onChange={(e) => setUsername(e.target.value)}
+                      disabled={loading}
                     />
                   </div>
                   <div className="space-y-2">
@@ -142,6 +213,7 @@ const LoginPage = () => {
                       placeholder="your.email@example.com"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
+                      disabled={loading}
                     />
                   </div>
                   <div className="space-y-2">
@@ -151,12 +223,17 @@ const LoginPage = () => {
                       type="password"
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
+                      disabled={loading}
                     />
                   </div>
                 </CardContent>
                 <CardFooter>
-                  <Button type="submit" className="w-full bg-f1-red hover:bg-f1-red/90">
-                    Create Account
+                  <Button 
+                    type="submit" 
+                    className="w-full bg-f1-red hover:bg-f1-red/90"
+                    disabled={loading}
+                  >
+                    {loading ? 'Creating Account...' : 'Create Account'}
                   </Button>
                 </CardFooter>
               </form>
