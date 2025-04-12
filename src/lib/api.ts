@@ -261,12 +261,157 @@ export const getDraftPosition = async (raceId: string, userId?: string): Promise
 export const getDraftPositionsByRaceId = async (raceId: string): Promise<DraftPosition[]> => {
   const { data, error } = await supabase
     .from('draft_positions')
-    .select('*, user:profiles(*)')
+    .select('*, user:user_id(*)')
     .eq('race_id', raceId)
     .order('position', { ascending: true });
   
   if (error) throw error;
   return data || [];
+};
+
+export const createOrUpdateDraftPosition = async (
+  raceId: string,
+  userId: string, 
+  position: number
+): Promise<DraftPosition> => {
+  // Check if a draft position already exists
+  const { data: existing, error: existingError } = await supabase
+    .from('draft_positions')
+    .select('*')
+    .eq('race_id', raceId)
+    .eq('user_id', userId)
+    .single();
+  
+  if (existingError && existingError.code !== 'PGRST116') throw existingError;
+  
+  if (existing) {
+    // Update existing draft position
+    const { data, error } = await supabase
+      .from('draft_positions')
+      .update({ position, updated_at: new Date().toISOString() })
+      .eq('id', existing.id)
+      .select()
+      .single();
+    
+    if (error) throw error;
+    return data;
+  } else {
+    // Create new draft position
+    const { data, error } = await supabase
+      .from('draft_positions')
+      .insert({ 
+        race_id: raceId,
+        user_id: userId,
+        position
+      })
+      .select()
+      .single();
+    
+    if (error) throw error;
+    return data;
+  }
+};
+
+/**
+ * Calculate draft positions for the next race based on current race results
+ * Players closest to P10 get higher priority (lower position number)
+ */
+export const calculateDraftPositionsFromRaceResults = async (
+  currentRaceId: string,
+  nextRaceId: string
+): Promise<void> => {
+  // Get all race results for the current race
+  const raceResults = await getRaceResultsByRaceId(currentRaceId);
+  
+  // Get the driver who finished P10
+  const p10Result = raceResults.find(result => result.position === 10);
+  if (!p10Result) {
+    throw new Error('Cannot calculate draft positions: P10 result not found');
+  }
+  
+  // Get all predictions for this race
+  const predictions = await getPredictionsByRaceId(currentRaceId);
+  
+  // Get all profiles
+  const profiles = await getProfiles();
+  
+  // Calculate proximity to P10 for each player
+  const playerProximities = profiles.map(profile => {
+    const prediction = predictions.find(p => p.player_id === profile.id);
+    
+    // If player didn't predict, they get lowest priority
+    if (!prediction || prediction.driver_predictions.length === 0) {
+      return {
+        playerId: profile.id,
+        proximity: Number.MAX_SAFE_INTEGER,
+        closestPosition: null
+      };
+    }
+    
+    // If player correctly predicted P10, they get highest priority
+    if (prediction.driver_predictions.includes(p10Result.driver_id)) {
+      return {
+        playerId: profile.id,
+        proximity: 0,
+        closestPosition: 10
+      };
+    }
+    
+    // Find the closest driver the player predicted to P10
+    let closestProximity = Number.MAX_SAFE_INTEGER;
+    let closestPosition = null;
+    
+    for (const driverId of prediction.driver_predictions) {
+      const driverResult = raceResults.find(result => result.driver_id === driverId);
+      if (driverResult) {
+        const proximity = Math.abs(driverResult.position - 10);
+        if (proximity < closestProximity) {
+          closestProximity = proximity;
+          closestPosition = driverResult.position;
+        }
+      }
+    }
+    
+    return {
+      playerId: profile.id,
+      proximity: closestProximity,
+      closestPosition
+    };
+  });
+  
+  // Sort players by proximity (ascending)
+  playerProximities.sort((a, b) => {
+    // First by proximity
+    if (a.proximity !== b.proximity) {
+      return a.proximity - b.proximity;
+    }
+    
+    // If same proximity, prefer the player who predicted lower position
+    // (This handles tiebreakers like P9 vs P11, where P9 is closer to the front)
+    if (a.closestPosition !== null && b.closestPosition !== null) {
+      return a.closestPosition - b.closestPosition;
+    }
+    
+    // If one has no position and the other does, the one with position is prioritized
+    if (a.closestPosition === null && b.closestPosition !== null) return 1;
+    if (a.closestPosition !== null && b.closestPosition === null) return -1;
+    
+    // Otherwise they're equal
+    return 0;
+  });
+  
+  // Create draft positions for the next race
+  const batches = [];
+  for (let i = 0; i < playerProximities.length; i++) {
+    // Position is 1-indexed (1 is highest priority)
+    const position = i + 1;
+    batches.push(
+      createOrUpdateDraftPosition(nextRaceId, playerProximities[i].playerId, position)
+    );
+  }
+  
+  // Wait for all draft positions to be created/updated
+  await Promise.all(batches);
 };
 
 // Auth helper functions

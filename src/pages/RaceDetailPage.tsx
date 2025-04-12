@@ -49,7 +49,8 @@ import {
   createOrUpdatePrediction,
   getProfiles,
   getRaceResultsByRaceId,
-  getDraftPosition
+  getDraftPosition,
+  getDraftPositionsByRaceId
 } from '@/lib/api';
 
 const RaceDetailPage = () => {
@@ -104,7 +105,13 @@ const RaceDetailPage = () => {
     queryFn: () => (raceId ? getRaceResultsByRaceId(raceId) : []),
     enabled: !!raceId,
   });
-
+  
+  // Fetch all draft positions for this race
+  const { data: draftPositions = [] } = useQuery({
+    queryKey: ['draftPositions', raceId],
+    queryFn: () => (raceId ? getDraftPositionsByRaceId(raceId) : []),
+    enabled: !!raceId,
+  });
   
   // Get 10th place driver for scoring (if exists)
   const tenthPlaceResult = raceResults.find(result => result.position === 10);
@@ -481,6 +488,61 @@ const RaceDetailPage = () => {
           </CardContent>
         </Card>
       </div>
+      
+      {/* Add Draft Positions section before the Player Predictions table */}
+      {!isPastRace && draftPositions.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center">
+              <Trophy className="mr-2 h-5 w-5 text-f1-yellow" />
+              Draft Order
+            </CardTitle>
+            <CardDescription>
+              Order in which players will have their driver picks assigned
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {draftPositions.map((draftPos) => {
+                  const profile = allProfiles.find(p => p.id === draftPos.user_id);
+                  const isCurrentUser = profile?.id === currentProfile?.id;
+                  
+                  return (
+                    <div 
+                      key={draftPos.id} 
+                      className={`p-4 rounded-lg flex items-center ${
+                        isCurrentUser ? 'bg-blue-50 border border-blue-200' : 'bg-gray-50'
+                      }`}
+                    >
+                      <div className="flex-shrink-0 w-8 h-8 rounded-full bg-f1-red text-white flex items-center justify-center font-bold mr-3">
+                        {draftPos.position}
+                      </div>
+                      <div>
+                        <p className="font-medium">
+                          {profile?.name || 'Unknown Player'}
+                          {isCurrentUser && <span className="text-blue-600 ml-2">(You)</span>}
+                        </p>
+                        <p className="text-sm text-muted-foreground">
+                          {draftPos.position === 1 
+                            ? 'First pick' 
+                            : `Pick #${draftPos.position}`}
+                        </p>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+              
+              {draftPositions.length === 0 && (
+                <div className="text-center py-6">
+                  <p className="text-muted-foreground">No draft order has been established for this race yet.</p>
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      )}
       
       <Card>
         <CardHeader>
