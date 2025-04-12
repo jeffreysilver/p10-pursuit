@@ -36,6 +36,48 @@ export type Database = {
         }
         Relationships: []
       }
+      draft_positions: {
+        Row: {
+          id: string
+          user_id: string
+          race_id: string
+          position: number
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          race_id: string
+          position: number
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          race_id?: string
+          position?: number
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "draft_positions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "draft_positions_race_id_fkey"
+            columns: ["race_id"]
+            isOneToOne: false
+            referencedRelation: "races"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
       predictions: {
         Row: {
           created_at: string
@@ -105,6 +147,48 @@ export type Database = {
         }
         Relationships: []
       }
+      race_results: {
+        Row: {
+          created_at: string
+          driver_id: string
+          id: string
+          position: number
+          race_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          driver_id: string
+          id?: string
+          position: number
+          race_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          driver_id?: string
+          id?: string
+          position?: number
+          race_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "race_results_driver_id_fkey"
+            columns: ["driver_id"]
+            isOneToOne: false
+            referencedRelation: "drivers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "race_results_race_id_fkey"
+            columns: ["race_id"]
+            isOneToOne: false
+            referencedRelation: "races"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
       races: {
         Row: {
           circuit: string
@@ -114,7 +198,6 @@ export type Database = {
           location: string
           name: string
           status: Database["public"]["Enums"]["race_status"]
-          tenth_place_driver: string | null
           updated_at: string
         }
         Insert: {
@@ -125,7 +208,6 @@ export type Database = {
           location: string
           name: string
           status?: Database["public"]["Enums"]["race_status"]
-          tenth_place_driver?: string | null
           updated_at?: string
         }
         Update: {
@@ -136,18 +218,9 @@ export type Database = {
           location?: string
           name?: string
           status?: Database["public"]["Enums"]["race_status"]
-          tenth_place_driver?: string | null
           updated_at?: string
         }
-        Relationships: [
-          {
-            foreignKeyName: "races_tenth_place_driver_fkey"
-            columns: ["tenth_place_driver"]
-            isOneToOne: false
-            referencedRelation: "drivers"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
     }
     Views: {
@@ -270,10 +343,3 @@ export type CompositeTypes<
     ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
     : never
 
-export const Constants = {
-  public: {
-    Enums: {
-      race_status: ["upcoming", "live", "completed"],
-    },
-  },
-} as const

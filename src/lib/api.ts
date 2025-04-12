@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
 
@@ -7,6 +6,8 @@ export type Driver = Database['public']['Tables']['drivers']['Row'];
 export type Race = Database['public']['Tables']['races']['Row'];
 export type Profile = Database['public']['Tables']['profiles']['Row'];
 export type Prediction = Database['public']['Tables']['predictions']['Row'];
+export type RaceResult = Database['public']['Tables']['race_results']['Row'];
+export type DraftPosition = Database['public']['Tables']['draft_positions']['Row'];
 
 // Drivers API
 export const getDrivers = async (): Promise<Driver[]> => {
@@ -167,6 +168,105 @@ export const createOrUpdatePrediction = async (
     if (error) throw error;
     return data;
   }
+};
+
+// Race Results API
+export const getRaceResultsByRaceId = async (raceId: string): Promise<RaceResult[]> => {
+  const { data, error } = await supabase
+    .from('race_results')
+    .select('*, driver:drivers(*)')
+    .eq('race_id', raceId)
+    .order('position', { ascending: true });
+  
+  if (error) throw error;
+  return data || [];
+};
+
+export const getDriverRaceResult = async (raceId: string, driverId: string): Promise<RaceResult | null> => {
+  const { data, error } = await supabase
+    .from('race_results')
+    .select('*')
+    .eq('race_id', raceId)
+    .eq('driver_id', driverId)
+    .single();
+  
+  if (error) {
+    if (error.code === 'PGRST116') return null;
+    throw error;
+  }
+  
+  return data;
+};
+
+export const createOrUpdateRaceResult = async (
+  raceId: string,
+  driverId: string,
+  position: number
+): Promise<RaceResult> => {
+  // Check if a result already exists
+  const existing = await getDriverRaceResult(raceId, driverId);
+  
+  if (existing) {
+    // Update existing result
+    const { data, error } = await supabase
+      .from('race_results')
+      .update({ position, updated_at: new Date().toISOString() })
+      .eq('id', existing.id)
+      .select()
+      .single();
+    
+    if (error) throw error;
+    return data;
+  } else {
+    // Create new result
+    const { data, error } = await supabase
+      .from('race_results')
+      .insert({ 
+        race_id: raceId,
+        driver_id: driverId,
+        position
+      })
+      .select()
+      .single();
+    
+    if (error) throw error;
+    return data;
+  }
+};
+
+// Draft Positions API
+export const getDraftPosition = async (raceId: string, userId?: string): Promise<DraftPosition | null> => {
+  // If no userId is provided, get the current user
+  if (!userId) {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session?.user?.id) return null;
+    userId = session.user.id;
+  }
+  
+  const { data, error } = await supabase
+    .from('draft_positions')
+    .select('*')
+    .eq('race_id', raceId)
+    .eq('user_id', userId)
+    .single();
+  
+  if (error) {
+    if (error.code === 'PGRST116') return null; // Not found
+    throw error;
+  }
+  
+  return data;
+};
+
+export const getDraftPositionsByRaceId = async (raceId: string): Promise<DraftPosition[]> => {
+  const { data, error } = await supabase
+    .from('draft_positions')
+    .select('*, user:profiles(*)')
+    .eq('race_id', raceId)
+    .order('position', { ascending: true });
+  
+  if (error) throw error;
+  return data || [];
 };
 
 // Auth helper functions

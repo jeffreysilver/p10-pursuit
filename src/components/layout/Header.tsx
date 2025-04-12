@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -72,22 +71,10 @@ const Header = () => {
                   Home
                 </Button>
               </Link>
-              <Link to="/races">
-                <Button variant="ghost" className="flex items-center gap-2">
-                  <Calendar className="h-4 w-4" />
-                  Races
-                </Button>
-              </Link>
               <Link to="/leaderboard">
                 <Button variant="ghost" className="flex items-center gap-2">
                   <Trophy className="h-4 w-4" />
                   Leaderboard
-                </Button>
-              </Link>
-              <Link to="/players">
-                <Button variant="ghost" className="flex items-center gap-2">
-                  <Users className="h-4 w-4" />
-                  Players
                 </Button>
               </Link>
             </>
@@ -98,7 +85,7 @@ const Header = () => {
                   <Home className="h-5 w-5" />
                 </Button>
               </Link>
-              <Link to="/races">
+              <Link to="/">
                 <Button variant="ghost" size="icon">
                   <Calendar className="h-5 w-5" />
                 </Button>
@@ -106,11 +93,6 @@ const Header = () => {
               <Link to="/leaderboard">
                 <Button variant="ghost" size="icon">
                   <Trophy className="h-5 w-5" />
-                </Button>
-              </Link>
-              <Link to="/players">
-                <Button variant="ghost" size="icon">
-                  <Users className="h-5 w-5" />
                 </Button>
               </Link>
             </>

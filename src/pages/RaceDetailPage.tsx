@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -36,9 +35,10 @@ import {
   ArrowLeft,
   ChevronUp,
   ChevronDown,
-  X
+  X,
+  Lock
 } from 'lucide-react';
-import { formatDate } from '@/lib/date-utils';
+import { formatDate, isRacePast } from '@/lib/date-utils';
 import { toast } from 'sonner';
 import { 
   getRaceById, 
@@ -46,7 +46,10 @@ import {
   getDrivers,
   getPredictionsByRaceId,
   getCurrentProfile,
-  createOrUpdatePrediction
+  createOrUpdatePrediction,
+  getProfiles,
+  getRaceResultsByRaceId,
+  getDraftPosition
 } from '@/lib/api';
 
 const RaceDetailPage = () => {
@@ -82,13 +85,29 @@ const RaceDetailPage = () => {
     queryFn: getCurrentProfile,
   });
   
-  // Get the 10th place driver
-  const tenthPlaceDriverId = race?.tenth_place_driver || null;
-  const { data: tenthPlaceDriver } = useQuery({
-    queryKey: ['driver', tenthPlaceDriverId],
-    queryFn: () => (tenthPlaceDriverId ? getDriverById(tenthPlaceDriverId) : null),
-    enabled: !!tenthPlaceDriverId,
+  // Fetch all profiles
+  const { data: allProfiles = [] } = useQuery({
+    queryKey: ['profiles'],
+    queryFn: getProfiles,
   });
+  
+  // Fetch user's draft position for this race
+  const { data: draftPosition } = useQuery({
+    queryKey: ['draftPosition', raceId],
+    queryFn: () => (raceId ? getDraftPosition(raceId) : null),
+    enabled: !!raceId,
+  });
+  
+  // Fetch race results
+  const { data: raceResults = [] } = useQuery({
+    queryKey: ['raceResults', raceId],
+    queryFn: () => (raceId ? getRaceResultsByRaceId(raceId) : []),
+    enabled: !!raceId,
+  });
+
+  
+  // Get 10th place driver for scoring (if exists)
+  const tenthPlaceResult = raceResults.find(result => result.position === 10);
   
   // Find current user's prediction
   const currentPrediction = predictions.find(
@@ -128,7 +147,7 @@ const RaceDetailPage = () => {
         <h1 className="text-2xl font-bold">Race not found</h1>
         <Button 
           variant="link" 
-          onClick={() => navigate('/races')}
+          onClick={() => navigate('/')}
           className="mt-4"
         >
           Back to Races
@@ -143,7 +162,7 @@ const RaceDetailPage = () => {
         <h1 className="text-2xl font-bold">Race not found</h1>
         <Button 
           variant="link" 
-          onClick={() => navigate('/races')}
+          onClick={() => navigate('/')}
           className="mt-4"
         >
           Back to Races
@@ -152,12 +171,15 @@ const RaceDetailPage = () => {
     );
   }
   
-  const isPastRace = race.status === 'completed';
+  const isPastRace = isRacePast(race.date);
   
   // Filter available drivers (not selected by current user)
   const availableDrivers = drivers.filter(
     driver => !selectedDrivers.includes(driver.id)
   );
+  
+  // Calculate max number of drivers user can select
+  const maxDriverSelections = draftPosition?.position || 5;
   
   const handleAddDriver = () => {
     if (!currentDriverSelection) {
@@ -165,8 +187,8 @@ const RaceDetailPage = () => {
       return;
     }
     
-    if (selectedDrivers.length >= 5) {
-      toast.error('You can only select up to 5 drivers');
+    if (selectedDrivers.length >= maxDriverSelections) {
+      toast.error(`You can only select up to ${maxDriverSelections} driver${maxDriverSelections > 1 ? 's' : ''}`);
       return;
     }
     
@@ -200,12 +222,14 @@ const RaceDetailPage = () => {
     
     predictionMutation.mutate(selectedDrivers);
   };
+
+
   
   return (
     <div className="space-y-6">
       <Button 
         variant="ghost" 
-        onClick={() => navigate('/races')}
+        onClick={() => navigate('/')}
         className="mb-4"
       >
         <ArrowLeft className="mr-2 h-4 w-4" />
@@ -216,12 +240,11 @@ const RaceDetailPage = () => {
         <h1 className="text-3xl font-bold tracking-tight">{race.name}</h1>
         <div className="flex items-center space-x-2">
           <Badge className={
-            race.status === 'upcoming' ? 'bg-yellow-100 text-yellow-800 border-yellow-200' :
-            race.status === 'live' ? 'bg-green-100 text-green-800 border-green-200' :
-            'bg-blue-100 text-blue-800 border-blue-200'
+            isRacePast ? 'bg-blue-100 text-blue-800 border-blue-200' :
+            'bg-yellow-100 text-yellow-800 border-yellow-200'
           }>
-            {race.status === 'upcoming' ? 'Upcoming' : 
-             race.status === 'live' ? 'Live' : 'Completed'}
+            {isRacePast ? 'Completed' : 
+             'Upcoming'}
           </Badge>
         </div>
       </div>
@@ -243,18 +266,42 @@ const RaceDetailPage = () => {
               <Calendar className="mr-2 h-5 w-5 text-muted-foreground" />
               <span>{formatDate(race.date)}</span>
             </div>
-            {isPastRace && tenthPlaceDriver && (
+            {isPastRace && (
               <div className="mt-6 p-4 bg-f1-black/5 rounded-lg">
-                <p className="font-medium text-center">10th Place Finisher</p>
-                <div className="mt-2 flex items-center justify-center">
-                  <div className="text-center">
-                    <div className="inline-flex items-center justify-center h-10 w-10 rounded-full bg-f1-red text-white font-bold">
-                      {tenthPlaceDriver.code}
-                    </div>
-                    <p className="mt-1 font-bold">{tenthPlaceDriver.name}</p>
-                    <p className="text-sm text-muted-foreground">{tenthPlaceDriver.team}</p>
+                <p className="font-medium text-center mb-2">Race Results</p>
+                {raceResults.length > 0 ? (
+                  <div className="space-y-2">
+                    {raceResults.slice(0, 10).map(result => {
+                      const driver = drivers.find(d => d.id === result.driver_id);
+                      if (!driver) return null;
+                      
+                      return (
+                        <div key={result.id} className="flex items-center justify-between">
+                          <div className="flex items-center">
+                            <span className="w-7 text-center font-bold">{result.position}.</span>
+                            <div className="inline-flex items-center justify-center h-7 w-7 rounded-full bg-f1-red text-white font-bold text-xs mr-2">
+                              {driver.code}
+                            </div>
+                            <span>{driver.name}</span>
+                          </div>
+                          <span className="text-sm text-muted-foreground">{driver.team}</span>
+                        </div>
+                      );
+                    })}
                   </div>
-                </div>
+                ) : (
+                  <div className="text-center py-4">
+                    <p className="text-muted-foreground mb-2">No results posted yet</p>
+                    {/* Only show this button for admins if needed */}
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => navigate(`/races/${race.id}/results/edit`)}
+                    >
+                      Add Results
+                    </Button>
+                  </div>
+                )}
               </div>
             )}
           </CardContent>
@@ -264,17 +311,15 @@ const RaceDetailPage = () => {
           <CardHeader>
             <CardTitle className="flex items-center">
               <Flag className="mr-2 h-5 w-5 text-f1-red" />
-              Your Predictions
+              Your Prediction
             </CardTitle>
-            {isPastRace ? (
-              <CardDescription>
-                The race has finished. See if your predictions were correct!
-              </CardDescription>
-            ) : (
-              <CardDescription>
-                Select up to 5 drivers in order of preference
-              </CardDescription>
-            )}
+              {isPastRace ? <CardDescription>
+                Your predictions are locked.
+              </CardDescription> : <CardDescription>
+                {draftPosition 
+                  ? `Select up to ${maxDriverSelections} driver${maxDriverSelections > 1 ? 's' : ''} in order of preference` 
+                  : 'Select up to 5 drivers in order of preference'}
+              </CardDescription>}
           </CardHeader>
           <CardContent>
             {isPastRace ? (
@@ -286,7 +331,7 @@ const RaceDetailPage = () => {
                       <div className="space-y-2">
                         {currentPrediction.driver_predictions.map((driverId, index) => {
                           const driver = drivers.find(d => d.id === driverId);
-                          const isCorrect = driverId === tenthPlaceDriverId;
+                          const isCorrect = tenthPlaceResult && driverId === tenthPlaceResult.driver_id;
                           
                           return driver ? (
                             <div key={driver.id} className="flex items-center justify-between p-2 rounded-lg bg-white shadow-sm">
@@ -325,6 +370,15 @@ const RaceDetailPage = () => {
               </div>
             ) : (
               <div className="space-y-4">
+                {draftPosition && (
+                  <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-md text-sm">
+                    <p className="font-medium text-yellow-800">Draft Position: {draftPosition.position}</p>
+                    <p className="text-yellow-700 mt-1">
+                      Based on your previous race result, you can select up to {maxDriverSelections} driver{maxDriverSelections > 1 ? 's' : ''}.
+                    </p>
+                  </div>
+                )}
+                
                 <div className="flex gap-2">
                   <Select 
                     value={currentDriverSelection} 
@@ -348,14 +402,14 @@ const RaceDetailPage = () => {
                   </Select>
                   <Button 
                     onClick={handleAddDriver}
-                    disabled={!currentDriverSelection || selectedDrivers.length >= 5}
+                    disabled={!currentDriverSelection || selectedDrivers.length >= maxDriverSelections}
                   >
                     Add
                   </Button>
                 </div>
                 
                 <div className="mt-4">
-                  <h3 className="font-medium mb-2">Selected Drivers ({selectedDrivers.length}/5)</h3>
+                  <h3 className="font-medium mb-2">Selected Drivers ({selectedDrivers.length}/{maxDriverSelections})</h3>
                   <div className="space-y-2">
                     {selectedDrivers.map((driverId, index) => {
                       const driver = drivers.find(d => d.id === driverId);
@@ -448,19 +502,18 @@ const RaceDetailPage = () => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {predictions.map(prediction => {
-                const player = prediction.player;
-                const hasCorrectPrediction = isPastRace && 
-                  prediction.driver_predictions.includes(tenthPlaceDriverId || '');
+              {allProfiles.map(profile => {
+                const prediction = predictions.find(p => p.player_id === profile.id);
+                const hasCorrectPrediction = isPastRace && prediction && tenthPlaceResult && 
+                  prediction.driver_predictions.includes(tenthPlaceResult.driver_id);
                 
                 return (
-                  <TableRow key={prediction.id}>
+                  <TableRow key={profile.id}>
                     <TableCell>
-                      <div className="font-medium">{player?.name || 'Unknown Player'}</div>
-                      <div className="text-xs text-muted-foreground">@{player?.username || 'unknown'}</div>
+                      <div className="font-medium">{profile.name || 'Unknown Player'}</div>
                     </TableCell>
                     <TableCell>
-                      {prediction.driver_predictions.length > 0 ? (
+                      {isPastRace && prediction && prediction.driver_predictions.length > 0 ? (
                         <div className="flex flex-wrap gap-1">
                           {prediction.driver_predictions.map((driverId, idx) => {
                             const driver = drivers.find(d => d.id === driverId);
@@ -475,13 +528,18 @@ const RaceDetailPage = () => {
                             ) : null;
                           })}
                         </div>
+                      ) : !isPastRace && prediction && prediction.driver_predictions.length > 0 ? (
+                        <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                          <Lock className="h-3 w-3 mr-1" />
+                          Prediction submitted
+                        </Badge>
                       ) : (
                         <span className="text-muted-foreground">Not predicted</span>
                       )}
                     </TableCell>
                     {isPastRace && (
                       <TableCell className="text-right">
-                        {prediction.driver_predictions.length > 0 ? (
+                        {prediction && prediction.driver_predictions.length > 0 ? (
                           <Badge className={
                             hasCorrectPrediction 
                               ? 'bg-green-100 text-green-800' 

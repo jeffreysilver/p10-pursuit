@@ -13,7 +13,6 @@ export interface Race {
   location: string;
   date: string;
   time?: string;
-  status: 'upcoming' | 'live' | 'completed';
   tenthPlaceDriver?: string; // For completed races
 }
 
@@ -58,7 +57,6 @@ export const races: Race[] = [
     location: 'Sakhir, Bahrain',
     date: '2025-03-02',
     time: '15:00:00',
-    status: 'completed',
     tenthPlaceDriver: '10', // Lance Stroll
   },
   {
@@ -68,7 +66,6 @@ export const races: Race[] = [
     location: 'Jeddah, Saudi Arabia',
     date: '2025-03-09',
     time: '18:00:00',
-    status: 'completed',
     tenthPlaceDriver: '12', // Esteban Ocon
   },
   {
@@ -78,7 +75,6 @@ export const races: Race[] = [
     location: 'Melbourne, Australia',
     date: '2025-03-23',
     time: '06:00:00',
-    status: 'completed',
     tenthPlaceDriver: '13', // Daniel Ricciardo
   },
   {
@@ -88,7 +84,6 @@ export const races: Race[] = [
     location: 'Suzuka, Japan',
     date: '2025-04-06',
     time: '07:00:00',
-    status: 'completed',
     tenthPlaceDriver: '9', // Fernando Alonso
   },
   {
@@ -98,7 +93,6 @@ export const races: Race[] = [
     location: 'Shanghai, China',
     date: '2025-04-20',
     time: '08:00:00',
-    status: 'live',
   },
   {
     id: '6',
@@ -107,7 +101,6 @@ export const races: Race[] = [
     location: 'Miami, USA',
     date: '2025-05-04',
     time: '20:30:00',
-    status: 'upcoming',
   },
   {
     id: '7',
@@ -116,7 +109,6 @@ export const races: Race[] = [
     location: 'Imola, Italy',
     date: '2025-05-18',
     time: '14:00:00',
-    status: 'upcoming',
   },
   {
     id: '8',
@@ -125,7 +117,6 @@ export const races: Race[] = [
     location: 'Monte Carlo, Monaco',
     date: '2025-05-25',
     time: '14:00:00',
-    status: 'upcoming',
   },
 ];
 

@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { Calendar, MapPin, Clock } from 'lucide-react';
-import { formatDate } from '@/lib/date-utils';
+import { formatDate, isRacePast } from '@/lib/date-utils';
 
 export interface RaceCardProps {
   race: {
@@ -14,7 +14,6 @@ export interface RaceCardProps {
     location: string;
     date: string;
     time?: string;
-    status: 'upcoming' | 'live' | 'completed';
   };
   className?: string;
   onClick?: () => void;
@@ -26,6 +25,7 @@ export function RaceCard({ race, className, onClick }: RaceCardProps) {
     live: 'bg-green-100 text-green-800 border-green-200',
     completed: 'bg-blue-100 text-blue-800 border-blue-200',
   };
+  const isInPast = isRacePast(race.date);
 
   return (
     <Card 
@@ -38,9 +38,8 @@ export function RaceCard({ race, className, onClick }: RaceCardProps) {
       <CardHeader className="pb-2">
         <div className="flex flex-wrap items-start justify-between">
           <CardTitle className="mr-2 text-xl font-bold">{race.name}</CardTitle>
-          <Badge className={statusColor[race.status]}>
-            {race.status === 'upcoming' ? 'Upcoming' : 
-             race.status === 'live' ? 'Live' : 'Completed'}
+          <Badge className={isInPast ? 'bg-blue-100 text-blue-800 border-blue-200' : 'bg-yellow-100 text-yellow-800 border-yellow-200'}>
+            {isInPast ? 'Completed' : 'Upcoming'}
           </Badge>
         </div>
       </CardHeader>
