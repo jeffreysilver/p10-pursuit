@@ -1,6 +1,7 @@
 
 import React from 'react';
-import { players } from '@/data/mock-data';
+import { useQuery } from '@tanstack/react-query';
+import { getProfiles } from '@/lib/api';
 import { 
   Card, 
   CardContent, 
@@ -19,7 +20,17 @@ import {
 import { Trophy } from 'lucide-react';
 
 const LeaderboardPage = () => {
-  const sortedPlayers = [...players].sort((a, b) => b.score - a.score);
+  const { data: profiles = [], isLoading } = useQuery({
+    queryKey: ['profiles'],
+    queryFn: getProfiles,
+  });
+  
+  if (isLoading) {
+    return <div className="py-12 text-center">Loading leaderboard...</div>;
+  }
+  
+  // Profiles are already sorted by score in descending order from the API
+  const topProfiles = profiles.slice(0, 3);
   
   return (
     <div className="space-y-6">
@@ -34,8 +45,8 @@ const LeaderboardPage = () => {
       </div>
       
       <div className="grid gap-6 md:grid-cols-3">
-        {sortedPlayers.slice(0, 3).map((player, index) => (
-          <Card key={player.id} className={`
+        {topProfiles.map((profile, index) => (
+          <Card key={profile.id} className={`
             ${index === 0 ? 'border-yellow-400 shadow-md' : ''}
             ${index === 1 ? 'border-gray-400' : ''}
             ${index === 2 ? 'border-amber-700' : ''}
@@ -53,12 +64,12 @@ const LeaderboardPage = () => {
                 ${index === 2 ? 'bg-amber-100' : ''}
               `}>
                 <span className="text-2xl font-bold">
-                  {player.name.charAt(0)}
+                  {profile.name.charAt(0)}
                 </span>
               </div>
-              <div className="mb-1 text-xl font-bold">{player.name}</div>
-              <div className="text-sm text-muted-foreground">@{player.username}</div>
-              <div className="mt-3 text-2xl font-bold">{player.score} points</div>
+              <div className="mb-1 text-xl font-bold">{profile.name}</div>
+              <div className="text-sm text-muted-foreground">@{profile.username}</div>
+              <div className="mt-3 text-2xl font-bold">{profile.score} points</div>
             </CardContent>
           </Card>
         ))}
@@ -81,8 +92,8 @@ const LeaderboardPage = () => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {sortedPlayers.map((player, index) => (
-                <TableRow key={player.id}>
+              {profiles.map((profile, index) => (
+                <TableRow key={profile.id}>
                   <TableCell className="font-medium">
                     {index + 1}
                     {index === 0 && ' 🥇'}
@@ -90,11 +101,11 @@ const LeaderboardPage = () => {
                     {index === 2 && ' 🥉'}
                   </TableCell>
                   <TableCell>
-                    <div>{player.name}</div>
-                    <div className="text-xs text-muted-foreground">@{player.username}</div>
+                    <div>{profile.name}</div>
+                    <div className="text-xs text-muted-foreground">@{profile.username}</div>
                   </TableCell>
                   <TableCell className="text-right font-bold">
-                    {player.score}
+                    {profile.score}
                   </TableCell>
                 </TableRow>
               ))}

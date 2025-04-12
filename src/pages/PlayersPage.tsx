@@ -58,10 +58,13 @@ const PlayersPage = () => {
                 {Object.entries(player.predictions)
                   .slice(-3)
                   .reverse()
-                  .map(([raceId, driverId]) => {
+                  .map(([raceId, driverIds]) => {
                     const race = getRaceById(raceId);
-                    const driver = getDriverById(driverId);
-                    const isCorrect = race?.tenthPlaceDriver === driverId;
+                    // For mock data compatibility, handle both string and array of strings
+                    const driverIdArray = Array.isArray(driverIds) ? driverIds : [driverIds];
+                    const primaryDriverId = driverIdArray[0]; // Get first driver as primary
+                    const driver = getDriverById(primaryDriverId);
+                    const isCorrect = race?.tenthPlaceDriver === primaryDriverId;
                     
                     return race && driver ? (
                       <div key={raceId} className="flex items-center justify-between text-sm p-2 bg-f1-black/5 rounded">
@@ -110,10 +113,13 @@ const PlayersPage = () => {
             </TableHeader>
             <TableBody>
               {players.flatMap(player => 
-                Object.entries(player.predictions).map(([raceId, driverId]) => {
+                Object.entries(player.predictions).map(([raceId, driverIds]) => {
                   const race = getRaceById(raceId);
-                  const driver = getDriverById(driverId);
-                  const isCorrect = race?.tenthPlaceDriver === driverId;
+                  // For mock data compatibility, handle both string and array of strings
+                  const driverIdArray = Array.isArray(driverIds) ? driverIds : [driverIds];
+                  const primaryDriverId = driverIdArray[0]; // Get first driver as primary
+                  const driver = getDriverById(primaryDriverId);
+                  const isCorrect = race?.tenthPlaceDriver === primaryDriverId;
                   
                   return race && driver ? (
                     <TableRow key={`${player.id}-${raceId}`}>

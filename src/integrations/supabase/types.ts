@@ -9,7 +9,146 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      drivers: {
+        Row: {
+          code: string
+          created_at: string
+          id: string
+          name: string
+          team: string
+          updated_at: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          id?: string
+          name: string
+          team: string
+          updated_at?: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          id?: string
+          name?: string
+          team?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      predictions: {
+        Row: {
+          created_at: string
+          driver_predictions: string[]
+          id: string
+          player_id: string
+          race_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          driver_predictions: string[]
+          id?: string
+          player_id: string
+          race_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          driver_predictions?: string[]
+          id?: string
+          player_id?: string
+          race_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "predictions_player_id_fkey"
+            columns: ["player_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "predictions_race_id_fkey"
+            columns: ["race_id"]
+            isOneToOne: false
+            referencedRelation: "races"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          score: number
+          updated_at: string
+          username: string
+        }
+        Insert: {
+          created_at?: string
+          id: string
+          name: string
+          score?: number
+          updated_at?: string
+          username: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          score?: number
+          updated_at?: string
+          username?: string
+        }
+        Relationships: []
+      }
+      races: {
+        Row: {
+          circuit: string
+          created_at: string
+          date: string
+          id: string
+          location: string
+          name: string
+          status: Database["public"]["Enums"]["race_status"]
+          tenth_place_driver: string | null
+          updated_at: string
+        }
+        Insert: {
+          circuit: string
+          created_at?: string
+          date: string
+          id?: string
+          location: string
+          name: string
+          status?: Database["public"]["Enums"]["race_status"]
+          tenth_place_driver?: string | null
+          updated_at?: string
+        }
+        Update: {
+          circuit?: string
+          created_at?: string
+          date?: string
+          id?: string
+          location?: string
+          name?: string
+          status?: Database["public"]["Enums"]["race_status"]
+          tenth_place_driver?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "races_tenth_place_driver_fkey"
+            columns: ["tenth_place_driver"]
+            isOneToOne: false
+            referencedRelation: "drivers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -18,7 +157,7 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      race_status: "upcoming" | "live" | "completed"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -133,6 +272,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      race_status: ["upcoming", "live", "completed"],
+    },
   },
 } as const

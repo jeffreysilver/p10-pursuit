@@ -1,6 +1,7 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { 
   Card, 
   CardContent,
@@ -38,26 +39,103 @@ import {
   X
 } from 'lucide-react';
 import { formatDate } from '@/lib/date-utils';
+import { toast } from 'sonner';
 import { 
   getRaceById, 
   getDriverById, 
-  getAvailableDriversForRace,
-  players, 
-  drivers 
-} from '@/data/mock-data';
-import { toast } from 'sonner';
+  getDrivers,
+  getPredictionsByRaceId,
+  getCurrentProfile,
+  createOrUpdatePrediction
+} from '@/lib/api';
 
 const RaceDetailPage = () => {
   const { raceId } = useParams<{ raceId: string }>();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [selectedDrivers, setSelectedDrivers] = useState<string[]>([]);
   const [currentDriverSelection, setCurrentDriverSelection] = useState<string>('');
   
-  if (!raceId) {
-    return <div>Race not found</div>;
+  // Fetch race details
+  const { data: race, isLoading: isLoadingRace, error: raceError } = useQuery({
+    queryKey: ['race', raceId],
+    queryFn: () => (raceId ? getRaceById(raceId) : null),
+    enabled: !!raceId,
+  });
+  
+  // Fetch all drivers
+  const { data: drivers = [] } = useQuery({
+    queryKey: ['drivers'],
+    queryFn: getDrivers,
+  });
+  
+  // Fetch predictions for this race
+  const { data: predictions = [] } = useQuery({
+    queryKey: ['predictions', raceId],
+    queryFn: () => (raceId ? getPredictionsByRaceId(raceId) : []),
+    enabled: !!raceId,
+  });
+  
+  // Fetch current user profile
+  const { data: currentProfile } = useQuery({
+    queryKey: ['currentProfile'],
+    queryFn: getCurrentProfile,
+  });
+  
+  // Get the 10th place driver
+  const tenthPlaceDriverId = race?.tenth_place_driver || null;
+  const { data: tenthPlaceDriver } = useQuery({
+    queryKey: ['driver', tenthPlaceDriverId],
+    queryFn: () => (tenthPlaceDriverId ? getDriverById(tenthPlaceDriverId) : null),
+    enabled: !!tenthPlaceDriverId,
+  });
+  
+  // Find current user's prediction
+  const currentPrediction = predictions.find(
+    p => p.player_id === currentProfile?.id
+  );
+  
+  // Create or update prediction mutation
+  const predictionMutation = useMutation({
+    mutationFn: (driverIds: string[]) => {
+      if (!raceId) throw new Error('Race ID is required');
+      return createOrUpdatePrediction(raceId, driverIds);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['predictions'] });
+      toast.success('Your predictions have been saved!');
+    },
+    onError: (error) => {
+      toast.error(`Failed to save prediction: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    },
+  });
+  
+  // Initialize selected drivers from existing prediction
+  useEffect(() => {
+    if (currentPrediction?.driver_predictions && selectedDrivers.length === 0) {
+      setSelectedDrivers([...currentPrediction.driver_predictions]);
+    }
+  }, [currentPrediction, selectedDrivers.length]);
+  
+  // Handle loading and error states
+  if (isLoadingRace) {
+    return <div className="py-12 text-center">Loading race details...</div>;
   }
   
-  const race = getRaceById(raceId);
+  if (raceError || !raceId) {
+    return (
+      <div className="text-center py-12">
+        <h1 className="text-2xl font-bold">Race not found</h1>
+        <Button 
+          variant="link" 
+          onClick={() => navigate('/races')}
+          className="mt-4"
+        >
+          Back to Races
+        </Button>
+      </div>
+    );
+  }
   
   if (!race) {
     return (
@@ -76,34 +154,8 @@ const RaceDetailPage = () => {
   
   const isPastRace = race.status === 'completed';
   
-  // For demo purposes, assume current user is the first player
-  const currentPlayer = players[0];
-  const currentPredictions = currentPlayer.predictions[raceId] || [];
-  const tenthPlaceDriverId = race.tenthPlaceDriver;
-  const tenthPlaceDriver = tenthPlaceDriverId ? getDriverById(tenthPlaceDriverId) : undefined;
-  
-  // Initialize selected drivers from existing predictions if available
-  React.useEffect(() => {
-    if (currentPredictions.length > 0 && selectedDrivers.length === 0) {
-      setSelectedDrivers([...currentPredictions]);
-    }
-  }, [currentPredictions, selectedDrivers.length]);
-  
-  // Get all available drivers for this race (not selected by other players)
-  const availableDrivers = getAvailableDriversForRace(raceId);
-  
-  // Add current user's selections to available drivers if they've already made predictions
-  if (currentPredictions.length > 0) {
-    currentPredictions.forEach(driverId => {
-      const playerDriver = getDriverById(driverId);
-      if (playerDriver && !availableDrivers.find(d => d.id === playerDriver.id)) {
-        availableDrivers.push(playerDriver);
-      }
-    });
-  }
-
-  // Filtered available drivers (exclude already selected ones)
-  const filteredAvailableDrivers = availableDrivers.filter(
+  // Filter available drivers (not selected by current user)
+  const availableDrivers = drivers.filter(
     driver => !selectedDrivers.includes(driver.id)
   );
   
@@ -146,11 +198,7 @@ const RaceDetailPage = () => {
       return;
     }
     
-    // In a real app, this would be an API call to save the prediction
-    toast.success('Your predictions have been saved!');
-    
-    // Mock updating the local state
-    currentPlayer.predictions[raceId] = [...selectedDrivers];
+    predictionMutation.mutate(selectedDrivers);
   };
   
   return (
@@ -195,12 +243,6 @@ const RaceDetailPage = () => {
               <Calendar className="mr-2 h-5 w-5 text-muted-foreground" />
               <span>{formatDate(race.date)}</span>
             </div>
-            {race.time && (
-              <div className="flex items-center">
-                <Clock className="mr-2 h-5 w-5 text-muted-foreground" />
-                <span>{race.time}</span>
-              </div>
-            )}
             {isPastRace && tenthPlaceDriver && (
               <div className="mt-6 p-4 bg-f1-black/5 rounded-lg">
                 <p className="font-medium text-center">10th Place Finisher</p>
@@ -237,13 +279,13 @@ const RaceDetailPage = () => {
           <CardContent>
             {isPastRace ? (
               <div>
-                {currentPredictions.length > 0 ? (
+                {currentPrediction ? (
                   <div className="space-y-4">
                     <div className="p-4 bg-f1-black/5 rounded-lg">
                       <p className="font-medium text-center mb-3">Your Predictions</p>
                       <div className="space-y-2">
-                        {currentPredictions.map((driverId, index) => {
-                          const driver = getDriverById(driverId);
+                        {currentPrediction.driver_predictions.map((driverId, index) => {
+                          const driver = drivers.find(d => d.id === driverId);
                           const isCorrect = driverId === tenthPlaceDriverId;
                           
                           return driver ? (
@@ -292,7 +334,7 @@ const RaceDetailPage = () => {
                       <SelectValue placeholder="Select a driver" />
                     </SelectTrigger>
                     <SelectContent>
-                      {filteredAvailableDrivers.map(driver => (
+                      {availableDrivers.map(driver => (
                         <SelectItem key={driver.id} value={driver.id}>
                           <div className="flex items-center">
                             <span className="font-semibold">{driver.code}</span>
@@ -316,7 +358,7 @@ const RaceDetailPage = () => {
                   <h3 className="font-medium mb-2">Selected Drivers ({selectedDrivers.length}/5)</h3>
                   <div className="space-y-2">
                     {selectedDrivers.map((driverId, index) => {
-                      const driver = getDriverById(driverId);
+                      const driver = drivers.find(d => d.id === driverId);
                       
                       return driver ? (
                         <div key={driver.id} className="flex items-center justify-between p-2 rounded-lg bg-f1-black/5">
@@ -375,9 +417,10 @@ const RaceDetailPage = () => {
                 <Button 
                   className="w-full bg-f1-red hover:bg-f1-red/90 mt-4"
                   onClick={handlePredictionSubmit}
-                  disabled={selectedDrivers.length === 0}
+                  disabled={selectedDrivers.length === 0 || predictionMutation.isPending}
                 >
-                  {currentPredictions.length > 0 ? 'Update Predictions' : 'Submit Predictions'}
+                  {predictionMutation.isPending ? 'Saving...' : 
+                   currentPrediction ? 'Update Predictions' : 'Submit Predictions'}
                 </Button>
               </div>
             )}
@@ -405,29 +448,29 @@ const RaceDetailPage = () => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {players.map(player => {
-                const predictions = player.predictions[raceId] || [];
+              {predictions.map(prediction => {
+                const player = prediction.player;
                 const hasCorrectPrediction = isPastRace && 
-                  predictions.includes(tenthPlaceDriverId || '');
+                  prediction.driver_predictions.includes(tenthPlaceDriverId || '');
                 
                 return (
-                  <TableRow key={player.id}>
+                  <TableRow key={prediction.id}>
                     <TableCell>
-                      <div className="font-medium">{player.name}</div>
-                      <div className="text-xs text-muted-foreground">@{player.username}</div>
+                      <div className="font-medium">{player?.name || 'Unknown Player'}</div>
+                      <div className="text-xs text-muted-foreground">@{player?.username || 'unknown'}</div>
                     </TableCell>
                     <TableCell>
-                      {predictions.length > 0 ? (
+                      {prediction.driver_predictions.length > 0 ? (
                         <div className="flex flex-wrap gap-1">
-                          {predictions.map((driverId, idx) => {
-                            const driver = getDriverById(driverId);
+                          {prediction.driver_predictions.map((driverId, idx) => {
+                            const driver = drivers.find(d => d.id === driverId);
                             return driver ? (
                               <div key={driver.id} className="flex items-center">
                                 <div className="inline-flex items-center justify-center h-6 w-6 rounded-full bg-f1-black text-white text-xs font-bold mr-1">
                                   {driver.code}
                                 </div>
                                 <span className="text-xs">{idx + 1}</span>
-                                {idx < predictions.length - 1 && <span className="mx-1">,</span>}
+                                {idx < prediction.driver_predictions.length - 1 && <span className="mx-1">,</span>}
                               </div>
                             ) : null;
                           })}
@@ -438,7 +481,7 @@ const RaceDetailPage = () => {
                     </TableCell>
                     {isPastRace && (
                       <TableCell className="text-right">
-                        {predictions.length > 0 ? (
+                        {prediction.driver_predictions.length > 0 ? (
                           <Badge className={
                             hasCorrectPrediction 
                               ? 'bg-green-100 text-green-800' 
