@@ -1,3 +1,4 @@
+
 import type { Config } from "tailwindcss";
 
 export default {
@@ -61,6 +62,15 @@ export default {
 					'accent-foreground': 'hsl(var(--sidebar-accent-foreground))',
 					border: 'hsl(var(--sidebar-border))',
 					ring: 'hsl(var(--sidebar-ring))'
+				},
+				// Racing themed colors
+				f1: {
+					red: '#E10600',
+					black: '#15151E',
+					gray: '#38383F',
+					yellow: '#FFDA0A',
+					blue: '#0090D0',
+					white: '#FFFFFF',
 				}
 			},
 			borderRadius: {
@@ -84,11 +94,32 @@ export default {
 					to: {
 						height: '0'
 					}
+				},
+				'bounce-subtle': {
+					'0%, 100%': { transform: 'translateY(0)' },
+					'50%': { transform: 'translateY(-5px)' }
+				},
+				'race-flag': {
+					'0%': { transform: 'translateY(0) rotate(-5deg)' },
+					'50%': { transform: 'translateY(0) rotate(5deg)' },
+					'100%': { transform: 'translateY(0) rotate(-5deg)' }
+				},
+				'checkered-slide': {
+					'0%': { backgroundPosition: '0 0' },
+					'100%': { backgroundPosition: '20px 20px' }
 				}
 			},
 			animation: {
 				'accordion-down': 'accordion-down 0.2s ease-out',
-				'accordion-up': 'accordion-up 0.2s ease-out'
+				'accordion-up': 'accordion-up 0.2s ease-out',
+				'bounce-subtle': 'bounce-subtle 2s infinite ease-in-out',
+				'race-flag': 'race-flag 3s infinite ease-in-out',
+				'checkered-slide': 'checkered-slide 1s linear infinite'
+			},
+			backgroundImage: {
+				'checkered-pattern': 'repeating-conic-gradient(#000 0% 25%, #fff 0% 50%) 50% / 20px 20px',
+				'checkered-pattern-sm': 'repeating-conic-gradient(#000 0% 25%, #fff 0% 50%) 50% / 10px 10px',
+				'checkered-border': 'repeating-conic-gradient(#000 0% 25%, #fff 0% 50%) 50% / 5px 5px',
 			}
 		}
 	},
