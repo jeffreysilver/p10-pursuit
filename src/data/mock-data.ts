@@ -1,4 +1,3 @@
-
 export interface Driver {
   id: string;
   name: string;
@@ -23,7 +22,7 @@ export interface Player {
   name: string;
   username: string;
   score: number;
-  predictions: Record<string, string>; // raceId -> driverId
+  predictions: Record<string, string[]>; // raceId -> array of driverIds in order of preference
 }
 
 // Mock Drivers Data
@@ -138,10 +137,10 @@ export const players: Player[] = [
     username: 'alexj',
     score: 20,
     predictions: {
-      '1': '10', // Lance Stroll (correct)
-      '2': '5', // Lewis Hamilton (incorrect)
-      '3': '7', // Lando Norris (incorrect)
-      '4': '9', // Fernando Alonso (correct)
+      '1': ['10'], // Lance Stroll (correct)
+      '2': ['5', '6', '8', '12', '13'], // Lewis Hamilton and others
+      '3': ['7', '9', '12'], // Lando Norris and others
+      '4': ['9', '11', '17'], // Fernando Alonso and others
     }
   },
   {
@@ -150,10 +149,10 @@ export const players: Player[] = [
     username: 'sarahm',
     score: 10,
     predictions: {
-      '1': '8', // Oscar Piastri (incorrect)
-      '2': '12', // Esteban Ocon (correct)
-      '3': '9', // Fernando Alonso (incorrect)
-      '4': '11', // Pierre Gasly (incorrect)
+      '1': ['8', '7', '3', '5', '2'],
+      '2': ['12', '14', '16'],
+      '3': ['9', '10', '5'],
+      '4': ['11', '13', '15'],
     }
   },
   {
@@ -162,10 +161,10 @@ export const players: Player[] = [
     username: 'mikew',
     score: 10,
     predictions: {
-      '1': '4', // Carlos Sainz (incorrect)
-      '2': '6', // George Russell (incorrect)
-      '3': '13', // Daniel Ricciardo (correct)
-      '4': '14', // Yuki Tsunoda (incorrect)
+      '1': ['4', '3', '1'],
+      '2': ['6', '7', '8', '10'],
+      '3': ['13', '15', '17', '19'],
+      '4': ['14', '16', '18', '20'],
     }
   },
   {
@@ -174,10 +173,10 @@ export const players: Player[] = [
     username: 'emilyd',
     score: 0,
     predictions: {
-      '1': '3', // Charles Leclerc (incorrect)
-      '2': '7', // Lando Norris (incorrect)
-      '3': '11', // Pierre Gasly (incorrect)
-      '4': '4', // Carlos Sainz (incorrect)
+      '1': ['3', '1', '5', '7', '9'],
+      '2': ['7', '9', '11'],
+      '3': ['11', '13', '15'],
+      '4': ['4', '6', '8'],
     }
   },
 ];
@@ -201,9 +200,8 @@ export function getPlayerById(id: string): Player | undefined {
 export function getAvailableDriversForRace(raceId: string): Driver[] {
   // Get all drivers selected for this race
   const selectedDriverIds = players.reduce((acc: string[], player) => {
-    const driverId = player.predictions[raceId];
-    if (driverId) acc.push(driverId);
-    return acc;
+    const driverIds = player.predictions[raceId] || [];
+    return [...acc, ...driverIds];
   }, []);
   
   // Return drivers that haven't been selected
