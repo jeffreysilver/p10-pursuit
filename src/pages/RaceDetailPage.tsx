@@ -221,7 +221,7 @@ const predictionMutation = useMutation({
   },
   onSuccess: () => {
     queryClient.invalidateQueries({ queryKey: ['predictions'] });
-    toast.success('Your predictions have been saved!');
+    toast.success('Your preferences have been saved!');
   },
   onError: (error) => {
     toast.error(`Failed to save prediction: ${error instanceof Error ? error.message : 'Unknown error'}`);
@@ -421,10 +421,10 @@ return (
           <CardHeader className="bg-gradient-to-r from-f1-black/5 to-transparent">
             <CardTitle className="flex items-center">
               <Flag className="mr-2 h-5 w-5 text-f1-papaya animate-pulse" />
-              Your Prediction
+              Your Driver Preferences
             </CardTitle>
               {arePicksLocked ? <CardDescription>
-                <span className="text-f1-papaya/80">Your predictions are locked.</span>
+                <span className="text-f1-papaya/80">Your pick is locked.</span>
               </CardDescription> : (
                 <CardDescription>
                   {draftPosition 
@@ -499,7 +499,7 @@ return (
                   </div>
                 ) : (
                   <div className="text-center py-6">
-                    <p className="text-muted-foreground">You didn't make any predictions for this race.</p>
+                    <p className="text-muted-foreground">You did not submit picks for this race via P10 Pursuit.</p>
                   </div>
                 )}
               </div>
