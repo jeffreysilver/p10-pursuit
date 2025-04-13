@@ -12,11 +12,12 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu';
+import { AuthUser } from '@supabase/supabase-js';
 
 const Header = () => {
   const isMobile = useIsMobile();
   const navigate = useNavigate();
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<AuthUser | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -47,7 +48,7 @@ const Header = () => {
       await supabase.auth.signOut();
       toast.success('Logged out successfully');
       navigate('/');
-    } catch (error: any) {
+    } catch (error: {message?:string}) {
       toast.error(error.message || 'An error occurred during logout');
     }
   };

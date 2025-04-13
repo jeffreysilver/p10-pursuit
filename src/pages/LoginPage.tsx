@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -18,7 +17,7 @@ const LoginPage = () => {
   const [username, setUsername] = useState<string>('');
   const [name, setName] = useState<string>('');
   const [loading, setLoading] = useState<boolean>(false);
-  
+
   // Check if user is already logged in
   useEffect(() => {
     const checkSession = async () => {
@@ -63,8 +62,12 @@ const LoginPage = () => {
       
       toast.success('Successfully logged in!');
       navigate('/');
-    } catch (error: any) {
-      toast.error(error.message || 'An error occurred during login');
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        toast.error(error.message || 'An error occurred during login');
+      } else {
+        toast.error('An unknown error occurred during login');
+      }
     } finally {
       setLoading(false);
     }
@@ -97,8 +100,12 @@ const LoginPage = () => {
       
       toast.success('Account created successfully! Please check your email for the confirmation link.');
       setTab('login');
-    } catch (error: any) {
-      toast.error(error.message || 'An error occurred during signup');
+    } catch (error: unknown) {
+      if (typeof error === 'object' && error !== null && 'message' in error) {
+        toast.error((error as {message: string}).message || 'An error occurred during signup');
+      } else {
+        toast.error('An error occurred during signup');
+      }
     } finally {
       setLoading(false);
     }

@@ -8,6 +8,7 @@ export type Profile = Database['public']['Tables']['profiles']['Row'];
 export type Prediction = Database['public']['Tables']['predictions']['Row'];
 export type RaceResult = Database['public']['Tables']['race_results']['Row'];
 export type DraftPosition = Database['public']['Tables']['draft_positions']['Row'];
+export type Pick = Database['public']['Tables']['picks']['Row'];
 
 // Drivers API
 export const getDrivers = async (): Promise<Driver[]> => {
@@ -38,7 +39,7 @@ export const getDriverById = async (id: string): Promise<Driver | null> => {
 export const getRaces = async (): Promise<Race[]> => {
   const { data, error } = await supabase
     .from('races')
-    .select('*')
+    .select('*, race_results(count)')
     .order('date', { ascending: true });
   
   if (error) throw error;
@@ -165,6 +166,7 @@ export const createOrUpdatePrediction = async (
       .select()
       .single();
     
+      console.log(error)
     if (error) throw error;
     return data;
   }
@@ -261,12 +263,29 @@ export const getDraftPosition = async (raceId: string, userId?: string): Promise
 export const getDraftPositionsByRaceId = async (raceId: string): Promise<DraftPosition[]> => {
   const { data, error } = await supabase
     .from('draft_positions')
-    .select('*, user:user_id(*)')
+    .select('*')
     .eq('race_id', raceId)
     .order('position', { ascending: true });
+
+  console.log(data, error)
   
   if (error) throw error;
-  return data || [];
+  
+  // Manually fetch the profile information for each draft position
+  const enhancedData = await Promise.all((data || []).map(async (draftPosition) => {
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', draftPosition.user_id)
+      .single();
+      
+    return {
+      ...draftPosition,
+      user: profile
+    };
+  }));
+  
+  return enhancedData;
 };
 
 export const createOrUpdateDraftPosition = async (
@@ -413,6 +432,109 @@ export const calculateDraftPositionsFromRaceResults = async (
   // Wait for all draft positions to be created/updated
   await Promise.all(batches);
 };
+
+// Picks API
+export const getPicksByRaceId = async (raceId: string): Promise<Pick[]> => {
+  const { data, error } = await supabase
+    .from('picks')
+    .select('*, driver:driver_id(*)')
+    .eq('race_id', raceId);
+  
+  if (error) throw error;
+  
+  // Manually fetch the profile information for each pick
+  const enhancedData = await Promise.all((data || []).map(async (pick) => {
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', pick.user_id)
+      .single();
+      
+    return {
+      ...pick,
+      user: profile
+    };
+  }));
+  
+  return enhancedData;
+};
+
+export const getUserPickForRace = async (raceId: string, userId?: string): Promise<Pick | null> => {
+  // If no userId is provided, get the current user
+  if (!userId) {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session?.user?.id) return null;
+    userId = session.user.id;
+  }
+  
+  const { data, error } = await supabase
+    .from('picks')
+    .select('*, driver:driver_id(*)')
+    .eq('race_id', raceId)
+    .eq('user_id', userId)
+    .single();
+  
+  if (error) {
+    if (error.code === 'PGRST116') return null; // Not found
+    throw error;
+  }
+  
+  return data;
+};
+
+export const createOrUpdatePick = async (
+  raceId: string,
+  driverId: string,
+  userId?: string
+): Promise<Pick> => {
+  // If no userId is provided, get the current user
+  if (!userId) {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session?.user?.id) throw new Error('User not authenticated');
+    userId = session.user.id;
+  }
+  
+  // Check if a pick already exists
+  const { data: existing, error: existingError } = await supabase
+    .from('picks')
+    .select('*')
+    .eq('race_id', raceId)
+    .eq('user_id', userId)
+    .single();
+  
+  if (existingError && existingError.code !== 'PGRST116') throw existingError;
+  
+  if (existing) {
+    // Update existing pick
+    const { data, error } = await supabase
+      .from('picks')
+      .update({ 
+        driver_id: driverId, 
+        updated_at: new Date().toISOString() 
+      })
+      .eq('id', existing.id)
+      .select()
+      .single();
+    
+    if (error) throw error;
+    return data;
+  } else {
+    // Create new pick
+    const { data, error } = await supabase
+      .from('picks')
+      .insert({ 
+        race_id: raceId,
+        user_id: userId,
+        driver_id: driverId
+      })
+      .select()
+      .single();
+    
+    if (error) throw error;
+    return data;
+  }
+};
+
 
 // Auth helper functions
 export const isAuthenticated = async (): Promise<boolean> => {

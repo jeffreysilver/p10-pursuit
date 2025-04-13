@@ -116,7 +116,7 @@ NavigationMenuIndicator.displayName =
   NavigationMenuPrimitive.Indicator.displayName
 
 export {
-  navigationMenuTriggerStyle,
+  navigationMenuTriggerStyle, // eslint-disable-line
   NavigationMenu,
   NavigationMenuList,
   NavigationMenuItem,
@@ -124,5 +124,5 @@ export {
   NavigationMenuTrigger,
   NavigationMenuLink,
   NavigationMenuIndicator,
-  NavigationMenuViewport,
+  NavigationMenuViewport
 }

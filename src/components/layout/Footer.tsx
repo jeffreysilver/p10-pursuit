@@ -1,5 +1,4 @@
 
-import React from 'react';
 import { Flag } from 'lucide-react';
 
 const Footer = () => {

@@ -78,6 +78,55 @@ export type Database = {
           }
         ]
       }
+      picks: {
+        Row: {
+          id: string
+          user_id: string
+          race_id: string
+          driver_id: string
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          race_id: string
+          driver_id: string
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          race_id?: string
+          driver_id?: string
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "picks_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "picks_race_id_fkey"
+            columns: ["race_id"]
+            isOneToOne: false
+            referencedRelation: "races"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "picks_driver_id_fkey"
+            columns: ["driver_id"]
+            isOneToOne: false
+            referencedRelation: "drivers"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
       predictions: {
         Row: {
           created_at: string
@@ -197,6 +246,7 @@ export type Database = {
           id: string
           location: string
           name: string
+          lock_picks_at: string | null
           status: Database["public"]["Enums"]["race_status"]
           updated_at: string
         }
@@ -207,6 +257,7 @@ export type Database = {
           id?: string
           location: string
           name: string
+          lock_picks_at?: string | null
           status?: Database["public"]["Enums"]["race_status"]
           updated_at?: string
         }
@@ -217,6 +268,7 @@ export type Database = {
           id?: string
           location?: string
           name?: string
+          lock_picks_at?: string | null
           status?: Database["public"]["Enums"]["race_status"]
           updated_at?: string
         }

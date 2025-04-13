@@ -1,32 +1,22 @@
-
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
-import { Badge } from '@/components/ui/badge';
 import { Calendar, MapPin, Clock } from 'lucide-react';
-import { formatDate, isRacePast } from '@/lib/date-utils';
+import { formatDate } from '@/lib/date-utils';
+import { RaceStatusBadge } from '@/components/ui/race-status-badge';
+import { Race as ApiRace } from '@/lib/api';
+
+interface RaceWithOptionalTime extends ApiRace {
+  time?: string;
+}
 
 export interface RaceCardProps {
-  race: {
-    id: string;
-    name: string;
-    circuit: string;
-    location: string;
-    date: string;
-    time?: string;
-  };
+  race: RaceWithOptionalTime;
   className?: string;
   onClick?: () => void;
 }
 
 export function RaceCard({ race, className, onClick }: RaceCardProps) {
-  const statusColor = {
-    upcoming: 'bg-yellow-100 text-yellow-800 border-yellow-200',
-    live: 'bg-green-100 text-green-800 border-green-200',
-    completed: 'bg-blue-100 text-blue-800 border-blue-200',
-  };
-  const isInPast = isRacePast(race.date);
-
   return (
     <Card 
       className={cn(
@@ -38,9 +28,7 @@ export function RaceCard({ race, className, onClick }: RaceCardProps) {
       <CardHeader className="pb-2">
         <div className="flex flex-wrap items-start justify-between">
           <CardTitle className="mr-2 text-xl font-bold">{race.name}</CardTitle>
-          <Badge className={isInPast ? 'bg-blue-100 text-blue-800 border-blue-200' : 'bg-yellow-100 text-yellow-800 border-yellow-200'}>
-            {isInPast ? 'Completed' : 'Upcoming'}
-          </Badge>
+          <RaceStatusBadge race={race} hasResults={race.race_results[0].count > 0}/>
         </div>
       </CardHeader>
       <CardContent>
