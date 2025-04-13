@@ -8,7 +8,7 @@ const Footer = () => {
         <div className="flex items-center gap-2">
           <Flag className="h-4 w-4 text-f1-red" />
           <p className="text-sm text-muted-foreground">
-            © 2025 Checkered Picks. All rights reserved.
+            © 2025 P10 Pursuit. All rights reserved.
           </p>
         </div>
         <div className="flex items-center gap-1">

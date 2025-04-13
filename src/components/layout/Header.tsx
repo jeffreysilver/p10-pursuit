@@ -59,7 +59,7 @@ const Header = () => {
         <div className="flex items-center gap-2">
           <Flag className="h-6 w-6 text-f1-red animate-race-flag" />
           <Link to="/" className="text-2xl font-bold tracking-tight">
-            <span className="text-f1-red">Checkered</span> Picks
+            <span className="text-f1-red">P10</span> Pursuit
           </Link>
         </div>
         
