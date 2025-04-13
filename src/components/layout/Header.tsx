@@ -72,28 +72,13 @@ const Header = () => {
                   Home
                 </Button>
               </Link>
-              <Link to="/leaderboard">
-                <Button variant="ghost" className="flex items-center gap-2">
-                  <Trophy className="h-4 w-4" />
-                  Leaderboard
-                </Button>
-              </Link>
+
             </>
           ) : (
             <>
               <Link to="/">
                 <Button variant="ghost" size="icon">
                   <Home className="h-5 w-5" />
-                </Button>
-              </Link>
-              <Link to="/">
-                <Button variant="ghost" size="icon">
-                  <Calendar className="h-5 w-5" />
-                </Button>
-              </Link>
-              <Link to="/leaderboard">
-                <Button variant="ghost" size="icon">
-                  <Trophy className="h-5 w-5" />
                 </Button>
               </Link>
             </>
