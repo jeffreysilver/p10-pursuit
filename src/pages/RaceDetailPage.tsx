@@ -2,6 +2,23 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { 
+  DndContext, 
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent
+} from '@dnd-kit/core';
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
+import { 
   Card, 
   CardContent,
   CardHeader,
@@ -35,6 +52,7 @@ import {
   ChevronUp,
   ChevronDown,
   X,
+  Clock,
 } from 'lucide-react';
 import { formatDate, isRacePast } from '@/lib/date-utils';
 import { toast } from 'sonner';
@@ -58,6 +76,7 @@ const RaceDetailPage = () => {
   const queryClient = useQueryClient();
   const [selectedDrivers, setSelectedDrivers] = useState<string[]>([]);
   const [currentDriverSelection, setCurrentDriverSelection] = useState<string>('');
+  const [timeUntilLock, setTimeUntilLock] = useState<{ days: number; hours: number; minutes: number; seconds: number } | null>(null);
   
   // Fetch race details
   const { data: race, isLoading: isLoadingRace, error: raceError } = useQuery({
@@ -128,28 +147,6 @@ const RaceDetailPage = () => {
     p => p.player_id === currentProfile?.id
   );
   
-  // Create or update prediction mutation
-  const predictionMutation = useMutation({
-    mutationFn: (driverIds: string[]) => {
-      if (!raceId) throw new Error('Race ID is required');
-      return createOrUpdatePrediction(raceId, driverIds);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['predictions'] });
-      toast.success('Your predictions have been saved!');
-    },
-    onError: (error) => {
-      toast.error(`Failed to save prediction: ${error instanceof Error ? error.message : 'Unknown error'}`);
-    },
-  });
-  
-  // Initialize selected drivers from existing prediction
-  useEffect(() => {
-    if (currentPrediction?.driver_predictions) {
-      setSelectedDrivers([...currentPrediction.driver_predictions]);
-    }
-  }, [currentPrediction]);
-  
   // Handle loading and error states
   if (isLoadingRace) {
     return <div className="py-12 text-center">Loading race details...</div>;
@@ -185,10 +182,72 @@ const RaceDetailPage = () => {
     );
   }
   
-  const isPastRace = isRacePast(race.date);
-  
   // Check if picks are locked based on picks_lock_at field
-  const arePicksLocked = race?.lock_picks_at ? new Date(race.lock_picks_at) < new Date() : isPastRace;
+  const isPastRace = isRacePast(race.date);
+  const arePicksLocked = race.lock_picks_at ? new Date(race.lock_picks_at) < new Date() : isPastRace;
+  
+  // Calculate time until picks lock
+  useEffect(() => {
+    if (!race.lock_picks_at || arePicksLocked) {
+      setTimeUntilLock(null);
+      return;
+    }
+
+    const lockTime = new Date(race.lock_picks_at).getTime();
+    
+    const updateCountdown = () => {
+      const now = new Date().getTime();
+      const distance = lockTime - now;
+      
+      if (distance <= 0) {
+        setTimeUntilLock(null);
+        // Refresh the page to update UI
+        queryClient.invalidateQueries({ queryKey: ['race', raceId] });
+        return;
+      }
+      
+      const days = Math.floor(distance / (1000 * 60 * 60 * 24));
+      const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+      const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+      const seconds = Math.floor((distance % (1000 * 60)) / 1000);
+      
+      setTimeUntilLock({ days, hours, minutes, seconds });
+    };
+    
+    updateCountdown();
+    const interval = setInterval(updateCountdown, 1000);
+    
+    return () => clearInterval(interval);
+  }, [race.lock_picks_at, arePicksLocked, queryClient, raceId]);
+  
+  // Create or update prediction mutation
+  const predictionMutation = useMutation({
+    mutationFn: (driverIds: string[]) => {
+      if (!raceId) throw new Error('Race ID is required');
+      return createOrUpdatePrediction(raceId, driverIds);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['predictions'] });
+      toast.success('Your predictions have been saved!');
+    },
+    onError: (error) => {
+      toast.error(`Failed to save prediction: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    },
+  });
+  
+  // Initialize selected drivers from existing prediction
+  useEffect(() => {
+    if (currentPrediction?.driver_predictions) {
+      setSelectedDrivers([...currentPrediction.driver_predictions]);
+    }
+  }, [currentPrediction]);
+  
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
   
   // Filter available drivers (not selected by current user)
   const availableDrivers = drivers.filter(
@@ -220,24 +279,17 @@ const RaceDetailPage = () => {
     }
   };
   
-  const handleMoveDriverUp = (index: number) => {
-    if (index <= 0) return;
-    const newDrivers = [...selectedDrivers];
-    const driver1 = selectedDrivers[index]
-    const driver2 = selectedDrivers[index - 1]
-    if (!driver1 || !driver2) return;
-    newDrivers.splice(index - 1, 2, driver1, driver2);
-    setSelectedDrivers(newDrivers);
-  };
-  
-  const handleMoveDriverDown = (index: number) => {
-    if (index >= selectedDrivers.length - 1) return;
-    const newDrivers = [...selectedDrivers];
-    const driver1 = selectedDrivers[index]
-    const driver2 = selectedDrivers[index + 1]
-    if (!driver1 || !driver2) return;
-    newDrivers.splice(index, 2, driver2, driver1);
-    setSelectedDrivers(newDrivers);
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    
+    if (active.id !== over?.id) {
+      setSelectedDrivers((items) => {
+        const oldIndex = items.indexOf(active.id.toString());
+        const newIndex = items.indexOf(over?.id.toString() || '');
+        
+        return arrayMove(items, oldIndex, newIndex);
+      });
+    }
   };
   
   const handlePredictionSubmit = () => {
@@ -265,6 +317,13 @@ const RaceDetailPage = () => {
         <h1 className="text-3xl font-bold tracking-tight">{race.name}</h1>
         <div className="flex items-center space-x-2">
           <RaceStatusBadge race={race} hasResults={raceResults.length > 0 } />
+          {timeUntilLock && (
+            <Badge variant="outline" className="ml-2 bg-amber-50 border-amber-200 text-amber-800">
+              <Clock className="mr-1 h-3 w-3" />
+              Picks lock in: {timeUntilLock.days > 0 ? `${timeUntilLock.days}d ` : ''}
+              {String(timeUntilLock.hours).padStart(2, '0')}:{String(timeUntilLock.minutes).padStart(2, '0')}:{String(timeUntilLock.seconds).padStart(2, '0')}
+            </Badge>
+          )}
         </div>
       </div>
       
@@ -324,11 +383,20 @@ const RaceDetailPage = () => {
             </CardTitle>
               {arePicksLocked ? <CardDescription>
                 Your predictions are locked.
-              </CardDescription> : <CardDescription>
-                {draftPosition 
-                  ? `Select up to ${maxDriverSelections} driver${maxDriverSelections > 1 ? 's' : ''} in order of preference` 
-                  : 'Select up to 5 drivers in order of preference'}
-              </CardDescription>}
+              </CardDescription> : (
+                <CardDescription>
+                  {draftPosition 
+                    ? `Select up to ${maxDriverSelections} driver${maxDriverSelections > 1 ? 's' : ''} in order of preference` 
+                    : 'Select up to 5 drivers in order of preference'}
+                  {timeUntilLock && (
+                    <div className="mt-1 font-medium text-amber-700">
+                      <Clock className="inline-block mr-1 h-3 w-3" />
+                      Picks lock in: {timeUntilLock.days > 0 ? `${timeUntilLock.days}d ` : ''}
+                      {String(timeUntilLock.hours).padStart(2, '0')}:{String(timeUntilLock.minutes).padStart(2, '0')}:{String(timeUntilLock.seconds).padStart(2, '0')}
+                    </div>
+                  )}
+                </CardDescription>
+              )}
           </CardHeader>
           <CardContent>
             {arePicksLocked ? (
@@ -420,62 +488,35 @@ const RaceDetailPage = () => {
                 <div className="mt-4">
                   <h3 className="font-medium mb-2">Selected Drivers ({selectedDrivers.length}/{maxDriverSelections})</h3>
                   <div className="space-y-2">
-                    {selectedDrivers.map((driverId, index) => {
-                      const driver = drivers.find(d => d.id === driverId);
-                      
-                      return driver ? (
-                        <div key={driver.id} className="flex items-center justify-between p-2 rounded-lg bg-f1-black/5">
-                          <div className="flex items-center">
-                            <div className="flex items-center justify-center h-8 w-8 rounded-full bg-f1-red text-white font-bold mr-3">
-                              {driver.code}
-                            </div>
-                            <div>
-                              <p className="font-semibold">{driver.name}</p>
-                              <p className="text-xs text-muted-foreground">{driver.team}</p>
-                            </div>
-                          </div>
-                          <div className="flex items-center gap-1">
-                            <div className="w-6 h-6 rounded-full bg-f1-black/10 flex items-center justify-center">
-                              {index + 1}
-                            </div>
-                            <Button 
-                              variant="ghost" 
-                              size="icon" 
-                              onClick={() => handleMoveDriverUp(index)}
-                              disabled={index === 0}
-                              className="h-7 w-7"
-                            >
-                              <ChevronUp className="h-4 w-4" />
-                            </Button>
-                            <Button 
-                              variant="ghost" 
-                              size="icon" 
-                              onClick={() => handleMoveDriverDown(index)}
-                              disabled={index === selectedDrivers.length - 1}
-                              className="h-7 w-7"
-                            >
-                              <ChevronDown className="h-4 w-4" />
-                            </Button>
-                            <Button 
-                              variant="ghost" 
-                              size="icon" 
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleRemoveDriver(driver.id);
-                              }}
-                              className="h-7 w-7 text-red-500 hover:text-red-700 hover:bg-red-50"
-                            >
-                              <X className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </div>
-                      ) : null;
-                    })}
-                    
-                    {selectedDrivers.length === 0 && (
+                    {selectedDrivers.length === 0 ? (
                       <div className="text-center py-4 border border-dashed rounded-lg">
                         <p className="text-muted-foreground">No drivers selected</p>
                       </div>
+                    ) : (
+                      <DndContext 
+                        sensors={sensors}
+                        collisionDetection={closestCenter}
+                        onDragEnd={handleDragEnd}
+                      >
+                        <SortableContext 
+                          items={selectedDrivers}
+                          strategy={verticalListSortingStrategy}
+                        >
+                          {selectedDrivers.map((driverId, index) => {
+                            const driver = drivers.find(d => d.id === driverId);
+                            
+                            return driver ? (
+                              <SortableItem 
+                                key={driver.id} 
+                                id={driver.id}
+                                driver={driver} 
+                                index={index}
+                                onRemove={handleRemoveDriver}
+                              />
+                            ) : null;
+                          })}
+                        </SortableContext>
+                      </DndContext>
                     )}
                   </div>
                 </div>
@@ -678,5 +719,64 @@ const RaceDetailPage = () => {
     </div>
   );
 };
+
+// Add SortableItem component for drag-and-drop functionality
+interface SortableItemProps {
+  id: string;
+  driver: any;
+  index: number;
+  onRemove: (id: string) => void;
+}
+
+function SortableItem({ id, driver, index, onRemove }: SortableItemProps) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+  } = useSortable({ id });
+  
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+  };
+  
+  return (
+    <div 
+      ref={setNodeRef} 
+      style={style} 
+      className="flex items-center justify-between p-2 rounded-lg bg-f1-black/5 cursor-grab"
+      {...attributes} 
+      {...listeners}
+    >
+      <div className="flex items-center">
+        <div className="flex items-center justify-center h-8 w-8 rounded-full bg-f1-red text-white font-bold mr-3">
+          {driver.code}
+        </div>
+        <div>
+          <p className="font-semibold">{driver.name}</p>
+          <p className="text-xs text-muted-foreground">{driver.team}</p>
+        </div>
+      </div>
+      <div className="flex items-center gap-1">
+        <div className="w-6 h-6 rounded-full bg-f1-black/10 flex items-center justify-center">
+          {index + 1}
+        </div>
+        <Button 
+          variant="ghost" 
+          size="icon" 
+          onClick={(e) => {
+            e.stopPropagation();
+            onRemove(driver.id);
+          }}
+          className="h-7 w-7 text-red-500 hover:text-red-700 hover:bg-red-50 cursor-pointer"
+        >
+          <X className="h-4 w-4" />
+        </Button>
+      </div>
+    </div>
+  );
+}
 
 export default RaceDetailPage;
