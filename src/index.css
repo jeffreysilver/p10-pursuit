@@ -1,78 +1,77 @@
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
   :root {
-    --background: 220 33% 98%;
-    --foreground: 222 47% 11%;
+    --background: 204 76% 95%;
+    --foreground: 204 76% 15%;
 
     --card: 0 0% 100%;
-    --card-foreground: 222 47% 11%;
+    --card-foreground: 204 76% 15%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 222 47% 11%;
+    --popover-foreground: 204 76% 15%;
 
-    --primary: 0 91% 42%;
-    --primary-foreground: 210 40% 98%;
+    --primary: 204 76% 85%;
+    --primary-foreground: 204 76% 15%;
 
-    --secondary: 240 6% 10%;
+    --secondary: 204 76% 25%;
     --secondary-foreground: 210 40% 98%;
 
-    --muted: 210 40% 96%;
-    --muted-foreground: 215 16% 47%;
+    --muted: 204 76% 95%;
+    --muted-foreground: 204 76% 40%;
 
-    --accent: 42 100% 52%;
-    --accent-foreground: 222 47% 11%;
+    --accent: 204 76% 75%;
+    --accent-foreground: 204 76% 15%;
 
     --destructive: 0 84% 60%;
     --destructive-foreground: 210 40% 98%;
 
-    --border: 214 32% 91%;
-    --input: 214 32% 91%;
-    --ring: 221 83% 53%;
+    --border: 204 76% 85%;
+    --input: 204 76% 85%;
+    --ring: 204 76% 65%;
 
     --radius: 0.5rem;
 
-    --sidebar-background: 240 6% 10%;
+    --sidebar-background: 204 76% 25%;
     --sidebar-foreground: 210 40% 98%;
-    --sidebar-primary: 0 91% 42%;
-    --sidebar-primary-foreground: 210 40% 98%;
-    --sidebar-accent: 228 96% 51%;
+    --sidebar-primary: 204 76% 85%;
+    --sidebar-primary-foreground: 204 76% 15%;
+    --sidebar-accent: 204 76% 65%;
     --sidebar-accent-foreground: 210 40% 98%;
-    --sidebar-border: 240 6% 15%;
-    --sidebar-ring: 217 91% 60%;
+    --sidebar-border: 204 76% 30%;
+    --sidebar-ring: 204 76% 65%;
   }
 
   .dark {
-    --background: 240 6% 10%;
-    --foreground: 0 0% 98%;
+    --background: 204 76% 20%;
+    --foreground: 204 76% 95%;
 
-    --card: 240 6% 10%;
+    --card: 204 76% 20%;
     --card-foreground: 210 40% 98%;
 
-    --popover: 240 6% 10%;
+    --popover: 204 76% 20%;
     --popover-foreground: 210 40% 98%;
 
-    --primary: 0 91% 42%;
-    --primary-foreground: 210 40% 98%;
+    --primary: 204 76% 85%;
+    --primary-foreground: 204 76% 15%;
 
-    --secondary: 217 33% 18%;
+    --secondary: 204 76% 30%;
     --secondary-foreground: 210 40% 98%;
 
-    --muted: 217 33% 18%;
+    --muted: 204 76% 30%;
     --muted-foreground: 215 20% 65%;
 
-    --accent: 217 33% 18%;
+    --accent: 204 76% 30%;
     --accent-foreground: 210 40% 98%;
 
     --destructive: 0 63% 31%;
     --destructive-foreground: 210 40% 98%;
 
-    --border: 217 33% 18%;
-    --input: 217 33% 18%;
-    --ring: 213 27% 84%;
+    --border: 204 76% 30%;
+    --input: 204 76% 30%;
+    --ring: 204 76% 85%;
   }
 }
 
@@ -111,19 +110,4 @@
     @apply relative overflow-hidden rounded-lg border bg-card p-4 shadow-sm hover:shadow-md transition-all duration-300;
   }
 
-  .race-card::after {
-    content: '';
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    height: 4px;
-    background-image: repeating-linear-gradient(
-      90deg,
-      theme('colors.f1.red') 0,
-      theme('colors.f1.red') 10px,
-      transparent 10px,
-      transparent 20px
-    );
-  }
 }

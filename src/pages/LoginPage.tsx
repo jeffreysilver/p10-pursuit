@@ -116,10 +116,10 @@ const LoginPage = () => {
       <div className="w-full max-w-md">
         <div className="mb-6 text-center">
           <div className="flex items-center justify-center mb-2">
-            <Flag className="h-8 w-8 text-f1-red animate-race-flag" />
+            <Flag className="h-8 w-8 text-f1-papaya animate-race-flag" />
           </div>
           <h1 className="text-3xl font-bold">
-            <span className="text-f1-red">Checkered</span> Picks
+            <span className="text-f1-papaya">Checkered</span> Picks
           </h1>
           <p className="text-sm text-muted-foreground mt-1">
             Join the Formula One prediction game
@@ -172,7 +172,7 @@ const LoginPage = () => {
                 <CardFooter>
                   <Button 
                     type="submit" 
-                    className="w-full bg-f1-red hover:bg-f1-red/90"
+                    className="w-full bg-f1-papaya hover:bg-f1-papaya/90"
                     disabled={loading}
                   >
                     {loading ? 'Logging in...' : 'Login'}
@@ -237,7 +237,7 @@ const LoginPage = () => {
                 <CardFooter>
                   <Button 
                     type="submit" 
-                    className="w-full bg-f1-red hover:bg-f1-red/90"
+                    className="w-full bg-f1-papaya hover:bg-f1-papaya/90"
                     disabled={loading}
                   >
                     {loading ? 'Creating Account...' : 'Create Account'}

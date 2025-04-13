@@ -17,7 +17,7 @@ export function RaceCard({ race, className, onClick }: RaceCardProps) {
   return (
     <Card 
       className={cn(
-        "race-card cursor-pointer transition-all hover:translate-y-[-4px]",
+        "race-card cursor-pointer transition-all hover:translate-y-[-4px] border-b-4 border-b-f1-papaya",
         className
       )}
       onClick={onClick}

@@ -1,4 +1,3 @@
-
 import type { Config } from "tailwindcss";
 
 export default {
@@ -65,12 +64,14 @@ export default {
 				},
 				// Racing themed colors
 				f1: {
-					red: '#E10600',
+					red: '#FF2800',
 					black: '#15151E',
 					gray: '#38383F',
 					yellow: '#FFDA0A',
 					blue: '#0090D0',
 					white: '#FFFFFF',
+					gulf: '#B9E0F7',
+					papaya: '#FF8000',
 				}
 			},
 			borderRadius: {

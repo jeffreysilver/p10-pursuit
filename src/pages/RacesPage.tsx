@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { getRaces } from '@/lib/api';
 import { RaceCard } from '@/components/ui/race-card';
-import { Flag } from 'lucide-react';
 
 const RacesPage = () => {
   const navigate = useNavigate();
@@ -20,7 +19,6 @@ const RacesPage = () => {
     <div className="space-y-6">
       <div className="flex flex-col space-y-2">
         <h1 className="text-3xl font-bold tracking-tight flex items-center">
-          <Flag className="mr-2 h-6 w-6 text-f1-red" />
           F1 Race Calendar
         </h1>
         <p className="text-muted-foreground">

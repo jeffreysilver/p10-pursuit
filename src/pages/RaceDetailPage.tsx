@@ -87,7 +87,7 @@ const RaceDetailPage = () => {
     return (
       <div className="py-12 flex flex-col items-center justify-center min-h-[60vh]">
         <div className="relative w-16 h-16">
-          <div className="absolute inset-0 border-4 border-t-f1-red border-r-f1-blue border-b-f1-yellow border-l-f1-gray rounded-full animate-spin"></div>
+          <div className="absolute inset-0 border-4 border-t-f1-papaya border-r-f1-blue border-b-f1-yellow border-l-f1-gray rounded-full animate-spin"></div>
           <Gauge className="absolute inset-0 m-auto h-8 w-8 text-f1-black animate-pulse" />
         </div>
         <p className="mt-4 text-f1-black/70 animate-pulse">Loading race details...</p>
@@ -96,7 +96,7 @@ const RaceDetailPage = () => {
   }
   
   if (!race) {
-    return <div className="py-12 text-center text-f1-red">Could not load race data</div>;
+    return <div className="py-12 text-center text-f1-papaya">Could not load race data</div>;
   }
   
   return <RaceDetailView race={race} />;
@@ -319,7 +319,7 @@ return (
       animate={{ y: 0, opacity: 1 }}
       transition={{ duration: 0.4, delay: 0.1 }}
     >
-      <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-f1-red to-f1-blue bg-clip-text text-transparent">{race.name}</h1>
+      <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-f1-papaya to-f1-blue bg-clip-text text-transparent">{race.name}</h1>
       <div className="flex items-center space-x-2">
         <RaceStatusBadge race={race} hasResults={raceResults.length > 0 } />
         {timeUntilLock && (
@@ -338,10 +338,10 @@ return (
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, delay: 0.2 }}
       >
-        <Card className="overflow-hidden border-2 border-f1-gray/20 hover:border-f1-red/30 transition-all duration-300 shadow-lg hover:shadow-xl">
+        <Card className="overflow-hidden border-2 border-f1-gray/20 hover:border-f1-papaya/30 transition-all duration-300 shadow-lg hover:shadow-xl">
           <CardHeader className="bg-gradient-to-r from-f1-black/5 to-transparent">
             <CardTitle className="flex items-center">
-              <Calendar className="mr-2 h-5 w-5 text-f1-red" />
+              <Calendar className="mr-2 h-5 w-5 text-f1-papaya" />
               Race Details
             </CardTitle>
           </CardHeader>
@@ -351,8 +351,8 @@ return (
               <span className="group-hover:text-f1-blue transition-colors">{race.circuit}, {race.location}</span>
             </div>
             <div className="flex items-center group">
-              <Calendar className="mr-2 h-5 w-5 text-f1-red group-hover:scale-110 transition-transform" />
-              <span className="group-hover:text-f1-red transition-colors">{formatDate(race.date)}</span>
+              <Calendar className="mr-2 h-5 w-5 text-f1-papaya group-hover:scale-110 transition-transform" />
+              <span className="group-hover:text-f1-papaya transition-colors">{formatDate(race.date)}</span>
             </div>
             {isPastRace && (
               <motion.div 
@@ -420,11 +420,11 @@ return (
         <Card className="overflow-hidden border-2 border-f1-gray/20 hover:border-f1-yellow/30 transition-all duration-300 shadow-lg hover:shadow-xl">
           <CardHeader className="bg-gradient-to-r from-f1-black/5 to-transparent">
             <CardTitle className="flex items-center">
-              <Flag className="mr-2 h-5 w-5 text-f1-red animate-pulse" />
+              <Flag className="mr-2 h-5 w-5 text-f1-papaya animate-pulse" />
               Your Prediction
             </CardTitle>
               {arePicksLocked ? <CardDescription>
-                <span className="text-f1-red/80">Your predictions are locked.</span>
+                <span className="text-f1-papaya/80">Your predictions are locked.</span>
               </CardDescription> : (
                 <CardDescription>
                   {draftPosition 
@@ -470,7 +470,7 @@ return (
                             >
                               <div className="flex items-center">
                                 <div className={`flex items-center justify-center h-8 w-8 rounded-full ${
-                                  isCorrect ? 'bg-green-500 animate-pulse' : 'bg-gradient-to-br from-f1-red to-f1-blue'
+                                  isCorrect ? 'bg-green-500 animate-pulse' : 'bg-gradient-to-br from-f1-papaya to-f1-blue'
                                 } text-white font-bold mr-3`}>
                                   {driver.code}
                                 </div>
@@ -532,7 +532,7 @@ return (
                     value={currentDriverSelection} 
                     onValueChange={setCurrentDriverSelection}
                   >
-                    <SelectTrigger className="flex-grow transition-colors hover:border-f1-red/50 focus:border-f1-red">
+                    <SelectTrigger className="flex-grow transition-colors hover:border-f1-papaya/50 focus:border-f1-papaya">
                       <SelectValue placeholder="Select a driver" />
                     </SelectTrigger>
                     <SelectContent>
@@ -609,7 +609,7 @@ return (
                   transition={{ duration: 0.3, delay: 0.3 }}
                 >
                   <Button 
-                    className="w-full bg-gradient-to-r from-f1-red to-f1-red/80 hover:from-f1-red/90 hover:to-f1-red shadow-md hover:shadow-lg mt-4 transition-all duration-300 hover:scale-[1.02]"
+                    className="w-full bg-gradient-to-r from-f1-papaya to-f1-papaya/80 hover:from-f1-papaya/90 hover:to-f1-papaya shadow-md hover:shadow-lg mt-4 transition-all duration-300 hover:scale-[1.02]"
                     onClick={handlePredictionSubmit}
                     disabled={selectedDrivers.length === 0 || predictionMutation.isPending}
                   >
@@ -874,9 +874,9 @@ function SortableItem({ id, driver, index, onRemove }: SortableItemProps) {
       ref={setNodeRef} 
       style={style} 
       className={`flex items-center justify-between p-2 rounded-lg 
-        bg-gradient-to-r from-white to-f1-black/5 hover:from-f1-red/5 hover:to-white
+        bg-gradient-to-r from-white to-f1-black/5 hover:from-f1-papaya/5 hover:to-white
         cursor-grab shadow-md hover:shadow-lg
-        ${isDragging ? 'shadow-xl ring-2 ring-f1-red/20' : ''}
+        ${isDragging ? 'shadow-xl ring-2 ring-f1-papaya/20' : ''}
         transition-all duration-300`}
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
@@ -887,7 +887,7 @@ function SortableItem({ id, driver, index, onRemove }: SortableItemProps) {
     >
       <div className="flex items-center">
         <div className={`flex items-center justify-center h-8 w-8 rounded-full 
-          bg-gradient-to-br from-f1-red to-f1-blue 
+          bg-gradient-to-br from-f1-papaya to-f1-blue 
           text-white font-bold mr-3 shadow-md
           ${isDragging ? 'scale-110' : ''}
           transition-all duration-300`}

@@ -57,9 +57,9 @@ const Header = () => {
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container flex h-16 items-center justify-between">
         <div className="flex items-center gap-2">
-          <Flag className="h-6 w-6 text-f1-red animate-race-flag" />
+          <Flag className="h-6 w-6 text-f1-papaya animate-race-flag" />
           <Link to="/" className="text-2xl font-bold tracking-tight">
-            <span className="text-f1-red">P10</span> Pursuit
+            <span className="text-f1-papaya">P10</span> Pursuit
           </Link>
         </div>
         
@@ -81,6 +81,7 @@ const Header = () => {
                   <Home className="h-5 w-5" />
                 </Button>
               </Link>
+             
             </>
           )}
           
@@ -106,7 +107,7 @@ const Header = () => {
                 </DropdownMenu>
               ) : (
                 <Link to="/login">
-                  <Button className="bg-f1-red hover:bg-f1-red/90">Login</Button>
+                  <Button className="bg-f1-papaya hover:bg-f1-papaya/90">Login</Button>
                 </Link>
               )}
             </>
