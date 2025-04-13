@@ -9,24 +9,49 @@ import RaceDetailPage from "./pages/RaceDetailPage";
 import LeaderboardPage from "./pages/LeaderboardPage";
 import LoginPage from "./pages/LoginPage";
 import NotFound from "./pages/NotFound";
+import { AuthProvider } from "./lib/auth/AuthContext";
+import { ProtectedRoute } from "./lib/auth/ProtectedRoute";
 
 const queryClient = new QueryClient();
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Layout><RacesPage /></Layout>} />
-          <Route path="/races/:raceId" element={<Layout><RaceDetailPage /></Layout>} />
-          <Route path="/leaderboard" element={<Layout><LeaderboardPage /></Layout>} />
-          <Route path="/login" element={<LoginPage />} />
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </BrowserRouter>
-    </TooltipProvider>
+    <AuthProvider>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <BrowserRouter>
+          <Routes>
+            <Route 
+              path="/" 
+              element={
+                <ProtectedRoute>
+                  <Layout><RacesPage /></Layout>
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/races/:raceId" 
+              element={
+                <ProtectedRoute>
+                  <Layout><RaceDetailPage /></Layout>
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/leaderboard" 
+              element={
+                <ProtectedRoute>
+                  <Layout><LeaderboardPage /></Layout>
+                </ProtectedRoute>
+              } 
+            />
+            <Route path="/login" element={<LoginPage />} />
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </BrowserRouter>
+      </TooltipProvider>
+    </AuthProvider>
   </QueryClientProvider>
 );
 
