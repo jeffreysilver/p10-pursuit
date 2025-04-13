@@ -23,6 +23,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const { data } = await supabase.auth.getSession();
         setSession(data.session);
         setUser(data.session?.user ?? null);
+        
+        // If session exists but is about to expire, refresh it
+        if (data.session) {
+          const expiresAt = data.session.expires_at;
+          const now = Math.floor(Date.now() / 1000);
+          
+          // If session is going to expire in the next day, refresh it
+          if (expiresAt && expiresAt - now < 86400) {
+            const { data: refreshData } = await supabase.auth.refreshSession();
+            setSession(refreshData.session);
+            setUser(refreshData.session?.user ?? null);
+          }
+        }
       } catch (error) {
         console.error('Error getting session:', error);
       } finally {

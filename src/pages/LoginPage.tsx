@@ -41,6 +41,9 @@ const LoginPage = () => {
         throw error;
       }
       
+      // Set session to persist long-term (Supabase default is already 1 week)
+      await supabase.auth.refreshSession();
+      
       toast.success('Successfully logged in!');
       // No need to navigate here as the AuthContext will handle it
     } catch (error: unknown) {
