@@ -49,8 +49,6 @@ import {
   Trophy, 
   Users, 
   ArrowLeft,
-  ChevronUp,
-  ChevronDown,
   X,
   Clock,
 } from 'lucide-react';
@@ -66,25 +64,37 @@ import {
   getRaceResultsByRaceId,
   getDraftPosition,
   getDraftPositionsByRaceId,
-  getPicksByRaceId
+  getPicksByRaceId,
+  Race,
+  Driver
 } from '@/lib/api';
 import { RaceStatusBadge } from '@/components/ui/race-status-badge';
 
 const RaceDetailPage = () => {
   const { raceId } = useParams<{ raceId: string }>();
-  const navigate = useNavigate();
-  const queryClient = useQueryClient();
-  const [selectedDrivers, setSelectedDrivers] = useState<string[]>([]);
-  const [currentDriverSelection, setCurrentDriverSelection] = useState<string>('');
-  const [timeUntilLock, setTimeUntilLock] = useState<{ days: number; hours: number; minutes: number; seconds: number } | null>(null);
-  
+
   // Fetch race details
-  const { data: race, isLoading: isLoadingRace, error: raceError } = useQuery({
+  const { data: race } = useQuery({
     queryKey: ['race', raceId],
     queryFn: () => (raceId ? getRaceById(raceId) : null),
     enabled: !!raceId,
   });
+  if (!race) {
+    return <div className="py-12 text-center">Loading race details...</div>;
+  }
   
+  return <RaceDetailView race={race} />
+}
+  
+  const RaceDetailView= ({race}: {race: Race}) => {
+    const raceId = race.id;
+    const navigate = useNavigate();
+    const queryClient = useQueryClient();
+    const [selectedDrivers, setSelectedDrivers] = useState<string[]>([]);
+    const [currentDriverSelection, setCurrentDriverSelection] = useState<string>('');
+    const [timeUntilLock, setTimeUntilLock] = useState<{ days: number; hours: number; minutes: number; seconds: number } | null>(null);
+    
+
   // Fetch all drivers
   const { data: drivers = [] } = useQuery({
     queryKey: ['drivers'],
@@ -147,41 +157,8 @@ const RaceDetailPage = () => {
     p => p.player_id === currentProfile?.id
   );
   
-  // Handle loading and error states
-  if (isLoadingRace) {
-    return <div className="py-12 text-center">Loading race details...</div>;
-  }
-  
-  if (raceError || !raceId) {
-    return (
-      <div className="text-center py-12">
-        <h1 className="text-2xl font-bold">Race not found</h1>
-        <Button 
-          variant="link" 
-          onClick={() => navigate('/')}
-          className="mt-4"
-        >
-          Back to Races
-        </Button>
-      </div>
-    );
-  }
-  
-  if (!race) {
-    return (
-      <div className="text-center py-12">
-        <h1 className="text-2xl font-bold">Race not found</h1>
-        <Button 
-          variant="link" 
-          onClick={() => navigate('/')}
-          className="mt-4"
-        >
-          Back to Races
-        </Button>
-      </div>
-    );
-  }
-  
+
+
   // Check if picks are locked based on picks_lock_at field
   const isPastRace = isRacePast(race.date);
   const arePicksLocked = race.lock_picks_at ? new Date(race.lock_picks_at) < new Date() : isPastRace;
@@ -723,7 +700,7 @@ const RaceDetailPage = () => {
 // Add SortableItem component for drag-and-drop functionality
 interface SortableItemProps {
   id: string;
-  driver: any;
+  driver: Driver;
   index: number;
   onRemove: (id: string) => void;
 }

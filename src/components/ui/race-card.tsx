@@ -25,7 +25,7 @@ export function RaceCard({ race, className, onClick }: RaceCardProps) {
       <CardHeader className="pb-2">
         <div className="flex flex-wrap items-start justify-between">
           <CardTitle className="mr-2 text-xl font-bold">{race.name}</CardTitle>
-          {/* @ts-ignore */}
+          {/* @ts-expect-error */}
           <RaceStatusBadge race={race} hasResults={(race.race_results?.[0]?.count || 0) > 0}/> 
         </div>
       </CardHeader>
