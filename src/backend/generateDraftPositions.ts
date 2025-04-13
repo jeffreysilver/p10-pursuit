@@ -104,7 +104,7 @@ export async function generateDraftPositions(
 
   // 7. Insert new draft positions
   for (let i = 0; i < userScores.length; i++) {
-    const { userId } = userScores[i];
+    const { userId } = userScores[i] || {};
     const position = i + 1; // 1-indexed position
     
     const { error } = await supabaseAdmin

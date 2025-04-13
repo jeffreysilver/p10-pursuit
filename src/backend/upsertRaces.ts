@@ -1,4 +1,3 @@
-import { supabase } from "@/integrations/supabase/client";
 
 import { supabaseAdmin } from "./generatePicks";
 
@@ -18,7 +17,6 @@ export async function upsertRaces(season: string): Promise<void> {
     const races = response.MRData.RaceTable.Races;    
     // 2. Process each race
     for (const race of races) {
-      const round = race.round;
       const raceName = race.raceName;
       const circuitName = race.Circuit.circuitName;
       const location = `${race.Circuit.Location.locality}, ${race.Circuit.Location.country}`;
@@ -41,7 +39,11 @@ export async function upsertRaces(season: string): Promise<void> {
       
       if (existingRaces && existingRaces.length > 0) {
         // Update existing race
-        const raceId = existingRaces[0].id;
+        const raceId = existingRaces[0]?.id;
+        if (!raceId) {
+          console.error(`Race ID not found for ${raceName}`);
+          continue;
+        }
         console.log(`Updating race: ${raceName}`);
         
         await supabaseAdmin

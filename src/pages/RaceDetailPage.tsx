@@ -40,7 +40,6 @@ import { formatDate, isRacePast } from '@/lib/date-utils';
 import { toast } from 'sonner';
 import { 
   getRaceById, 
-  getDriverById, 
   getDrivers,
   getPredictionsByRaceId,
   getCurrentProfile,
@@ -120,8 +119,7 @@ const RaceDetailPage = () => {
     enabled: !!raceId,
   });
 
-  console.log(picks)
-  
+
   // Get 10th place driver for scoring (if exists)
   const tenthPlaceResult = raceResults.find(result => result.position === 10);
   
@@ -225,14 +223,20 @@ const RaceDetailPage = () => {
   const handleMoveDriverUp = (index: number) => {
     if (index <= 0) return;
     const newDrivers = [...selectedDrivers];
-    [newDrivers[index], newDrivers[index - 1]] = [newDrivers[index - 1], newDrivers[index]];
+    const driver1 = selectedDrivers[index]
+    const driver2 = selectedDrivers[index - 1]
+    if (!driver1 || !driver2) return;
+    newDrivers.splice(index - 1, 2, driver1, driver2);
     setSelectedDrivers(newDrivers);
   };
   
   const handleMoveDriverDown = (index: number) => {
     if (index >= selectedDrivers.length - 1) return;
     const newDrivers = [...selectedDrivers];
-    [newDrivers[index], newDrivers[index + 1]] = [newDrivers[index + 1], newDrivers[index]];
+    const driver1 = selectedDrivers[index]
+    const driver2 = selectedDrivers[index + 1]
+    if (!driver1 || !driver2) return;
+    newDrivers.splice(index, 2, driver2, driver1);
     setSelectedDrivers(newDrivers);
   };
   
@@ -244,9 +248,6 @@ const RaceDetailPage = () => {
     
     predictionMutation.mutate(selectedDrivers);
   };
-
-  console.log(draftPositions)
-
 
   
   return (
@@ -509,7 +510,7 @@ const RaceDetailPage = () => {
             <div className="space-y-2">
               <div className="space-y-2">
                 {draftPositions.map((draftPos) => {
-                  const profile = allProfiles.find(p => p.id === draftPos.player_id || p.id === draftPos.user_id);
+                  const profile = allProfiles.find(p => p.id === draftPos.user_id);
                   const isCurrentUser = profile?.id === currentProfile?.id;
                   
                   return (

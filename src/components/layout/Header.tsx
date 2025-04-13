@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { Flag, Trophy, Home, Calendar, Users, User, LogOut } from 'lucide-react';
+import { Flag, Trophy, Home, Calendar, User, LogOut } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -48,8 +48,8 @@ const Header = () => {
       await supabase.auth.signOut();
       toast.success('Logged out successfully');
       navigate('/');
-    } catch (error: {message?:string}) {
-      toast.error(error.message || 'An error occurred during logout');
+    } catch (error: unknown) {
+      toast.error((error as {message?:string}).message || 'An error occurred during logout');
     }
   };
 

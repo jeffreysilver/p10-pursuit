@@ -31,7 +31,7 @@ const LoginPage = () => {
     
     // Set up auth listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
+      (_, session) => {
         if (session) {
           navigate('/');
         }

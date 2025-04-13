@@ -1,17 +1,14 @@
-import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
-import { Calendar, MapPin, Clock } from 'lucide-react';
+import { Calendar, MapPin } from 'lucide-react';
 import { formatDate } from '@/lib/date-utils';
 import { RaceStatusBadge } from '@/components/ui/race-status-badge';
-import { Race as ApiRace } from '@/lib/api';
+import {  Race } from '@/lib/api';
 
-interface RaceWithOptionalTime extends ApiRace {
-  time?: string;
-}
+
 
 export interface RaceCardProps {
-  race: RaceWithOptionalTime;
+  race: Race;
   className?: string;
   onClick?: () => void;
 }
@@ -28,7 +25,8 @@ export function RaceCard({ race, className, onClick }: RaceCardProps) {
       <CardHeader className="pb-2">
         <div className="flex flex-wrap items-start justify-between">
           <CardTitle className="mr-2 text-xl font-bold">{race.name}</CardTitle>
-          <RaceStatusBadge race={race} hasResults={race.race_results[0].count > 0}/>
+          {/* @ts-ignore */}
+          <RaceStatusBadge race={race} hasResults={(race.race_results?.[0]?.count || 0) > 0}/> 
         </div>
       </CardHeader>
       <CardContent>
@@ -37,12 +35,6 @@ export function RaceCard({ race, className, onClick }: RaceCardProps) {
             <Calendar className="mr-2 h-4 w-4 text-muted-foreground" />
             <span>{formatDate(race.date)}</span>
           </div>
-          {race.time && (
-            <div className="flex items-center text-sm">
-              <Clock className="mr-2 h-4 w-4 text-muted-foreground" />
-              <span>{race.time}</span>
-            </div>
-          )}
           <div className="flex items-center text-sm">
             <MapPin className="mr-2 h-4 w-4 text-muted-foreground" />
             <span>{race.circuit}, {race.location}</span>

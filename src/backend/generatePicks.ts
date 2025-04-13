@@ -18,7 +18,7 @@ export const supabaseAdmin = createClient(
 
 
 export async function generatePicks() {
-  const { data:races, error } = await supabaseAdmin
+  const { data:races } = await supabaseAdmin
   .from('races')
   .select('*, picks(*)')
   .lt('lock_picks_at', new Date().toISOString())
@@ -42,9 +42,9 @@ async function generatePicksForRace(supabaseAdmin: SupabaseClient, race: Race) {
     .select('*')
     .eq('race_id', race.id)
     .order('position', { ascending: true });
-    const pickedDriverIds = []
-    for (const draftPosition of draftOrder) {
-        const {data: userPredictions, error: userPredictionsError} = await supabaseAdmin
+    const pickedDriverIds: string[] = []
+    for (const draftPosition of draftOrder || []) {
+        const {data: userPredictions} = await supabaseAdmin
         .from('predictions')
         .select('*')
         .eq('player_id', draftPosition.user_id)
@@ -54,7 +54,7 @@ async function generatePicksForRace(supabaseAdmin: SupabaseClient, race: Race) {
             console.log(`No predictions found for user ${draftPosition.user_id}`)
             continue
         }
-        const drivers = userPredictions[0].driver_predictions
+        const drivers: string[] = userPredictions[0].driver_predictions
         const pickedDriver = drivers.find(driver => !pickedDriverIds.includes(driver))
         if (pickedDriver) {
             pickedDriverIds.push(pickedDriver)
