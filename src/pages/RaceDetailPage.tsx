@@ -10,7 +10,7 @@ import {
   useSensors,
   DragEndEvent,
   DragOverlay,
-  restrictToVerticalAxis
+  DragStartEvent
 } from '@dnd-kit/core';
 import {
   arrayMove,
@@ -74,6 +74,7 @@ import {
   Driver
 } from '@/lib/api';
 import { RaceStatusBadge } from '@/components/ui/race-status-badge';
+import { RaceCountdownTimer } from '@/components/RaceCountdownTimer';
 
 const RaceDetailPage = () => {
   const { raceId } = useParams<{ raceId: string }>();
@@ -110,7 +111,6 @@ const RaceDetailView= ({race}: {race: Race}) => {
   const queryClient = useQueryClient();
   const [selectedDrivers, setSelectedDrivers] = useState<string[]>([]);
   const [currentDriverSelection, setCurrentDriverSelection] = useState<string>('');
-  const [timeUntilLock, setTimeUntilLock] = useState<{ days: number; hours: number; minutes: number; seconds: number } | null>(null);
   const [activeId, setActiveId] = useState<string | null>(null);
   
 
@@ -182,40 +182,6 @@ const currentPrediction = predictions.find(
 const isPastRace = isRacePast(race.date);
 const arePicksLocked = race.lock_picks_at ? new Date(race.lock_picks_at) < new Date() : isPastRace;
 
-// Calculate time until picks lock
-useEffect(() => {
-  if (!race.lock_picks_at || arePicksLocked) {
-    setTimeUntilLock(null);
-    return;
-  }
-
-  const lockTime = new Date(race.lock_picks_at).getTime();
-  
-  const updateCountdown = () => {
-    const now = new Date().getTime();
-    const distance = lockTime - now;
-    
-    if (distance <= 0) {
-      setTimeUntilLock(null);
-      // Refresh the page to update UI
-      queryClient.invalidateQueries({ queryKey: ['race', raceId] });
-      return;
-    }
-    
-    const days = Math.floor(distance / (1000 * 60 * 60 * 24));
-    const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-    const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
-    const seconds = Math.floor((distance % (1000 * 60)) / 1000);
-    
-    setTimeUntilLock({ days, hours, minutes, seconds });
-  };
-  
-  updateCountdown();
-  // const interval = setInterval(updateCountdown, 1000);
-  
-  // return () => clearInterval(interval);
-}, [race.lock_picks_at, arePicksLocked, queryClient, raceId]);
-
 // Create or update prediction mutation
 const predictionMutation = useMutation({
   mutationFn: (driverIds: string[]) => {
@@ -276,8 +242,8 @@ const handleRemoveDriver = (driverId: string) => {
   setSelectedDrivers(updatedDrivers);
 };
 
-const handleDragStart = (event: { active: { id: string } }) => {
-  setActiveId(event.active.id);
+const handleDragStart = (event: DragStartEvent) => {
+  setActiveId(event.active.id.toString());
 };
 
 const handleDragEnd = (event: DragEndEvent) => {
@@ -336,12 +302,8 @@ return (
       <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-f1-papaya to-f1-blue bg-clip-text text-transparent">{race.name}</h1>
       <div className="flex items-center space-x-2">
         <RaceStatusBadge race={race} hasResults={raceResults.length > 0 } />
-        {timeUntilLock && (
-          <Badge variant="outline" className="ml-2 bg-amber-50 border-amber-200 text-amber-800 animate-pulse">
-            <Clock className="mr-1 h-3 w-3" />
-            Picks lock in: {timeUntilLock.days > 0 ? `${timeUntilLock.days}d ` : ''}
-            {String(timeUntilLock.hours).padStart(2, '0')}:{String(timeUntilLock.minutes).padStart(2, '0')}:{String(timeUntilLock.seconds).padStart(2, '0')}
-          </Badge>
+        {!arePicksLocked && race.lock_picks_at && (
+          <RaceCountdownTimer lockTime={race.lock_picks_at} raceId={raceId} />
         )}
       </div>
     </motion.div>
@@ -441,14 +403,9 @@ return (
                 <span className="text-f1-papaya/80">Your pick is locked.</span>
               </CardDescription> : (
                 <CardDescription>
-                  {draftPosition 
-                    ? `Select up to ${maxDriverSelections} driver${maxDriverSelections > 1 ? 's' : ''} in order of preference` 
-                    : 'Select up to 5 drivers in order of preference'}
-                  {timeUntilLock && (
+                  {!arePicksLocked && race.lock_picks_at && (
                     <div className="mt-1 font-medium text-amber-700">
-                      <Clock className="inline-block mr-1 h-3 w-3 animate-pulse" />
-                      Picks lock in: {timeUntilLock.days > 0 ? `${timeUntilLock.days}d ` : ''}
-                      {String(timeUntilLock.hours).padStart(2, '0')}:{String(timeUntilLock.minutes).padStart(2, '0')}:{String(timeUntilLock.seconds).padStart(2, '0')}
+                      <RaceCountdownTimer lockTime={race.lock_picks_at} raceId={raceId} />
                     </div>
                   )}
                 </CardDescription>
@@ -593,7 +550,6 @@ return (
                         onDragStart={handleDragStart}
                         onDragEnd={handleDragEnd}
                         onDragCancel={handleDragCancel}
-                        modifiers={[restrictToVerticalAxis]}
                       >
                         <SortableContext 
                           items={selectedDrivers}
