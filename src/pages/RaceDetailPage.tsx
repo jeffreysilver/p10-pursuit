@@ -8,7 +8,9 @@ import {
   PointerSensor,
   useSensor,
   useSensors,
-  DragEndEvent
+  DragEndEvent,
+  DragOverlay,
+  restrictToVerticalAxis
 } from '@dnd-kit/core';
 import {
   arrayMove,
@@ -109,6 +111,7 @@ const RaceDetailView= ({race}: {race: Race}) => {
   const [selectedDrivers, setSelectedDrivers] = useState<string[]>([]);
   const [currentDriverSelection, setCurrentDriverSelection] = useState<string>('');
   const [timeUntilLock, setTimeUntilLock] = useState<{ days: number; hours: number; minutes: number; seconds: number } | null>(null);
+  const [activeId, setActiveId] = useState<string | null>(null);
   
 
 // Fetch all drivers
@@ -208,9 +211,9 @@ useEffect(() => {
   };
   
   updateCountdown();
-  const interval = setInterval(updateCountdown, 1000);
+  // const interval = setInterval(updateCountdown, 1000);
   
-  return () => clearInterval(interval);
+  // return () => clearInterval(interval);
 }, [race.lock_picks_at, arePicksLocked, queryClient, raceId]);
 
 // Create or update prediction mutation
@@ -266,14 +269,21 @@ const handleAddDriver = () => {
 };
 
 const handleRemoveDriver = (driverId: string) => {
-  if (selectedDrivers.length > 0) {
-    const newDrivers = selectedDrivers.filter(id => id !== driverId);
-    setSelectedDrivers(newDrivers);
-  }
+  console.log("handleRemoveDriver called with:", driverId);
+  // Make sure we're not trying to modify a frozen array
+  const updatedDrivers = selectedDrivers.filter(id => id !== driverId);
+  console.log("Updated drivers:", updatedDrivers);
+  setSelectedDrivers(updatedDrivers);
+};
+
+const handleDragStart = (event: { active: { id: string } }) => {
+  setActiveId(event.active.id);
 };
 
 const handleDragEnd = (event: DragEndEvent) => {
   const { active, over } = event;
+  
+  setActiveId(null);
   
   if (active.id !== over?.id) {
     setSelectedDrivers((items) => {
@@ -283,6 +293,10 @@ const handleDragEnd = (event: DragEndEvent) => {
       return arrayMove(items, oldIndex, newIndex);
     });
   }
+};
+
+const handleDragCancel = () => {
+  setActiveId(null);
 };
 
 const handlePredictionSubmit = () => {
@@ -576,28 +590,39 @@ return (
                       <DndContext 
                         sensors={sensors}
                         collisionDetection={closestCenter}
+                        onDragStart={handleDragStart}
                         onDragEnd={handleDragEnd}
+                        onDragCancel={handleDragCancel}
+                        modifiers={[restrictToVerticalAxis]}
                       >
                         <SortableContext 
                           items={selectedDrivers}
                           strategy={verticalListSortingStrategy}
                         >
-                          <AnimatePresence>
-                            {selectedDrivers.map((driverId, index) => {
-                              const driver = drivers.find(d => d.id === driverId);
-                              
-                              return driver ? (
-                                <SortableItem 
-                                  key={driver.id} 
-                                  id={driver.id}
-                                  driver={driver} 
-                                  index={index}
-                                  onRemove={handleRemoveDriver}
-                                />
-                              ) : null;
-                            })}
-                          </AnimatePresence>
+                          <div className="space-y-2">
+                            <AnimatePresence>
+                              {selectedDrivers.map((driverId, index) => {
+                                const driver = drivers.find(d => d.id === driverId);
+                                return driver ? (
+                                  <SortableItem 
+                                    key={driver.id} 
+                                    id={driver.id}
+                                    driver={driver} 
+                                    index={index}
+                                    onRemove={handleRemoveDriver}
+                                  />
+                                ) : null;
+                              })}
+                            </AnimatePresence>
+                          </div>
                         </SortableContext>
+                        <DragOverlay>
+                          {activeId ? (
+                            <div className="p-2 rounded-lg bg-white shadow-lg border-2 border-f1-papaya">
+                              {drivers.find(d => d.id === activeId)?.name}
+                            </div>
+                          ) : null}
+                        </DragOverlay>
                       </DndContext>
                     )}
                   </div>
@@ -862,6 +887,8 @@ function SortableItem({ id, driver, index, onRemove }: SortableItemProps) {
     transition,
     isDragging,
   } = useSortable({ id });
+
+  console.log("in sortable item", index);
   
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -869,23 +896,33 @@ function SortableItem({ id, driver, index, onRemove }: SortableItemProps) {
     zIndex: isDragging ? 10 : 1,
   };
   
+  // Create a separate handler for the remove button
+  const handleRemove = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    console.log("Attempting to remove driver:", driver.id);
+    onRemove(driver.id);
+  };
+  
   return (
     <motion.div 
       ref={setNodeRef} 
       style={style} 
-      className={`flex items-center justify-between p-2 rounded-lg 
+      className={`relative flex items-center justify-between p-2 rounded-lg 
         bg-gradient-to-r from-white to-f1-black/5 hover:from-f1-papaya/5 hover:to-white
-        cursor-grab shadow-md hover:shadow-lg
-        ${isDragging ? 'shadow-xl ring-2 ring-f1-papaya/20' : ''}
+        shadow-md hover:shadow-lg
+        ${isDragging ? 'opacity-50 shadow-xl ring-2 ring-f1-papaya/20' : 'opacity-100'}
         transition-all duration-300`}
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -10 }}
       transition={{ duration: 0.3 }}
-      {...attributes} 
-      {...listeners}
     >
-      <div className="flex items-center">
+      <div 
+        className="flex items-center cursor-grab flex-1"
+        {...attributes}
+        {...listeners}
+      >
         <div className={`flex items-center justify-center h-8 w-8 rounded-full 
           bg-gradient-to-br from-f1-papaya to-f1-blue 
           text-white font-bold mr-3 shadow-md
@@ -899,7 +936,7 @@ function SortableItem({ id, driver, index, onRemove }: SortableItemProps) {
           <p className="text-xs text-muted-foreground">{driver.team}</p>
         </div>
       </div>
-      <div className="flex items-center gap-1">
+      <div className="flex items-center gap-1 ml-2">
         <div className={`w-6 h-6 rounded-full 
           ${index === 0 ? 'bg-f1-yellow text-black' : 'bg-f1-black/10'} 
           flex items-center justify-center
@@ -910,15 +947,15 @@ function SortableItem({ id, driver, index, onRemove }: SortableItemProps) {
         <Button 
           variant="ghost" 
           size="icon" 
-          onClick={(e) => {
-            e.stopPropagation();
-            onRemove(driver.id);
-          }}
+          onClick={handleRemove}
           className="h-7 w-7 text-red-500 hover:text-red-700 hover:bg-red-50 cursor-pointer transition-all duration-200"
         >
           <X className="h-4 w-4" />
         </Button>
       </div>
+      {isDragging && (
+        <div className="absolute inset-0 bg-f1-papaya/5 rounded-lg border-2 border-dashed border-f1-papaya/30" />
+      )}
     </motion.div>
   );
 }
