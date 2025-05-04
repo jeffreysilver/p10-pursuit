@@ -96,7 +96,7 @@ export async function processRecentRaces(): Promise<void> {
   
   // Get date for 24 hours ago
   const oneDayAgo = new Date();
-  oneDayAgo.setDate(oneDayAgo.getDate() - 1);
+  oneDayAgo.setDate(oneDayAgo.getDate() - 10);
   
   // Find races that ended in the last 24 hours
   const { data: recentRaces, error } = await supabaseAdmin

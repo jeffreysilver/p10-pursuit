@@ -31,7 +31,6 @@ const RacesPage = () => {
             {races.map(race => (
               <RaceCard 
                 key={race.id}
-                // @ts-ignore
                 race={race} 
                 onClick={() => navigate(`/races/${race.id}`)}
               />

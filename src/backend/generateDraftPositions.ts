@@ -1,4 +1,41 @@
-import { supabaseAdmin } from "./generatePicks";
+// Setup type definitions for built-in Supabase Runtime APIs
+import { SupabaseClient } from "@supabase/supabase-js";
+import "jsr:@supabase/functions-js/edge-runtime.d.ts";
+import { createClient } from 'jsr:@supabase/supabase-js@2';
+
+
+export const config = {
+  auth: false
+};
+Deno.serve(async (req)=>{
+  try {
+    const supabase = createClient(Deno.env.get('SUPABASE_URL') ?? '', Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '', {
+      global: {
+        headers: {
+          Authorization: req.headers.get('Authorization')
+        }
+      }
+    });
+    await generateNextRaceDraftPositions(supabase);
+    return new Response(JSON.stringify({
+      success: true
+    }), {
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      status: 200
+    });
+  } catch (err) {
+    return new Response(JSON.stringify({
+      message: err?.message ?? err
+    }), {
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      status: 500
+    });
+  }
+});
 
 /**
  * Generates draft positions for the next race based on previous race results
@@ -6,6 +43,7 @@ import { supabaseAdmin } from "./generatePicks";
  * @param nextRaceId The ID of the next race to set draft positions for
  */
 export async function generateDraftPositions(
+  supabaseAdmin: SupabaseClient,
   previousRaceId: string,
   nextRaceId: string
 ): Promise<void> {
@@ -129,36 +167,57 @@ export async function generateDraftPositions(
  * Helper function to generate draft positions for the next race
  * after results have been added for the current race
  */
-export async function generateNextRaceDraftPositions(currentRaceId: string): Promise<void> {
-  // Find the next race in sequence
-  const { data: currentRace } = await supabaseAdmin
+export async function generateNextRaceDraftPositions(supabaseAdmin): Promise<void> {
+  // 1. Fetch all races ordered by date so we can look at each consecutive pair
+  const { data: races, error: racesError } = await supabaseAdmin
     .from('races')
-    .select('date')
-    .eq('id', currentRaceId)
-    .single();
-  
-  if (!currentRace) {
-    console.error(`Race not found with ID: ${currentRaceId}`);
+    .select('id, date')
+    .order('date', { ascending: true });
+
+  if (racesError) {
+    console.error('Error fetching races:', racesError);
     return;
   }
+
   
-  // Find the next race after the current one
-  const { data: nextRace } = await supabaseAdmin
-    .from('races')
-    .select('id')
-    .gt('date', currentRace.date)
-    .order('date', { ascending: true })
-    .limit(1)
-    .single();
-  
-  if (!nextRace) {
-    console.log('No next race found in the schedule');
+
+  if (!races || races.length < 2) {
+    console.log('Not enough races in schedule to determine next races');
     return;
   }
-  
-  // Generate draft positions for the next race based on current race results
-  await generateDraftPositions(currentRaceId, nextRace.id);
+
+  // 2. Iterate through races and find where current race has results but next race does not
+  for (let i = 0; i < races.length - 1; i++) {
+    const currentRace = races[i]!;
+    const nextRace = races[i + 1]!;
+
+    // Check if current race has results
+    const { data: currentResults } = await supabaseAdmin
+      .from('race_results')
+      .select('id')
+      .eq('race_id', currentRace.id)
+      .limit(1);
+
+    if (!currentResults || currentResults.length === 0) {
+      // Current race has no results – skip
+      continue;
+    }
+
+    // Check if next race already has results
+    const { data: nextResults } = await supabaseAdmin
+      .from('draft_positions')
+      .select('id')
+      .eq('race_id', nextRace.id)
+      .limit(1);
+
+    if (nextResults && nextResults.length > 0) {
+      // Next race already has results – skip
+      continue;
+    }
+
+    console.log(`Generating draft positions: current race ${currentRace.id} has results, next race ${nextRace.id} has none.`);
+
+    // Generate draft positions for this pair
+    await generateDraftPositions(supabaseAdmin, currentRace.id, nextRace.id);
+  }
 }
-
-
-generateNextRaceDraftPositions('a74f6734-5e55-4acd-845f-606226494ee7')

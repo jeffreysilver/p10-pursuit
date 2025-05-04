@@ -757,5 +757,5 @@ export {
   SidebarRail,
   SidebarSeparator,
   SidebarTrigger,
-  useSidebar, // eslint-disable-line
+  useSidebar,  
 } 

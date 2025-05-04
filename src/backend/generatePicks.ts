@@ -24,6 +24,7 @@ export async function generatePicks() {
   .lt('lock_picks_at', new Date().toISOString())
   .is('picks', null)
 
+  console.log(races)
 
     if (!races || races.length === 0) {
     console.log('No races found needing picks')
@@ -73,4 +74,4 @@ async function generatePicksForRace(supabaseAdmin: SupabaseClient, race: Race) {
 }
 
 
-// generatePicks()
+generatePicks()

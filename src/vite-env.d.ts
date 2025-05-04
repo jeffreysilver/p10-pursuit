@@ -15,7 +15,7 @@ declare module 'virtual:pwa-register' {
     onNeedRefresh?: () => void
     onOfflineReady?: () => void
     onRegistered?: (registration: ServiceWorkerRegistration | undefined) => void
-    onRegisterError?: (error: any) => void
+    onRegisterError?: (error: any) => void // eslint-disable-line @typescript-eslint/no-explicit-any
   }
 
   export function registerSW(options?: RegisterSWOptions): (reloadPage?: boolean) => Promise<void>

@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -11,7 +10,6 @@ import { useAuth } from '@/lib/auth/AuthContext';
 import { Navigate } from 'react-router-dom';
 
 const LoginPage = () => {
-  const navigate = useNavigate();
   const { user, loading } = useAuth();
   const [email, setEmail] = useState<string>('');
   const [password, setPassword] = useState<string>('');

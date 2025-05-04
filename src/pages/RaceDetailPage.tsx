@@ -52,7 +52,6 @@ import {
   Users, 
   ArrowLeft,
   X,
-  Clock,
   Sparkles,
   Gauge
 } from 'lucide-react';
